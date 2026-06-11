@@ -12,7 +12,7 @@ Val set comes from the same split logic the trainer uses (bucket < 0.02 of
 md5(source_id)). Filters identical to dataset.py except we don't enforce
 min_images_per_species at val time — we want the long tail too.
 
-Run on desktop (v8 / open_clip):
+Run on a CUDA host (v8 / open_clip):
     python \\
         scripts/eval_bioclip_vs_orchid_clip.py \\
         --orchid-clip ./orchid-clip-v8 \\

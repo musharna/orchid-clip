@@ -1,7 +1,7 @@
 """Gradio-free inference core for the orchid genus-ID Space.
 
 Kept separate from app.py so the scoring + abstain + verdict formatting can be
-imported and exercised on real data (desktop, with the real v8 weights) without
+imported and exercised on real data (on a CUDA host, with the real v8 weights) without
 pulling in gradio. app.py is the thin UI shell over this.
 """
 

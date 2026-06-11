@@ -13,7 +13,7 @@ For each top confusion pair, reports the most frequent (true_species →
 pred_species) triples so the user can decide whether it's a data gap or a
 legit taxonomic boundary problem.
 
-Run on desktop (current default = v8):
+Run on a CUDA host (current default = v8):
 
     python \\
         scripts/audit_v7_confusions.py \\
