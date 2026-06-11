@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+# heavy computed artifacts (fetch from HF / regenerate) — but DO keep assets/cover.png
+*.bin
+*.npz
+*.pt
+eval_out/
