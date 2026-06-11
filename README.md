@@ -14,7 +14,7 @@
 > Genus structure transfers. Within-genus species identity doesn't — six independent attempts, one wall. So instead of guessing a binomial, the live demo serves a **calibrated genus**, and names a species only when the margin earns it.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/musharna/orchid-clip/main/assets/cover.png" alt="UMAP of 18,601 orchid-clip-v8 species prototypes, colored by WCVP subfamily — the genus-level structure the model learns to separate" width="100%">
+  <img src="assets/cover.png" alt="UMAP of 18,601 orchid-clip-v8 species prototypes, colored by WCVP subfamily — the genus-level structure the model learns to separate" width="100%">
 </p>
 
 </div>
