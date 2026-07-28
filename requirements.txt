@@ -2,7 +2,7 @@ gradio>=4.44,<6
 torch>=2.2
 open_clip_torch>=2.24
 huggingface_hub>=0.23
-numpy>=1.24
+numpy>=2.5.1
 Pillow>=10.0
 # Python 3.13 removed the stdlib `audioop` module that gradio's transitive dep
 # pydub imports at import time; this LTS backport restores it on 3.13+.
