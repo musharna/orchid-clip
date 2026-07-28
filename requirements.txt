@@ -1,5 +1,5 @@
 gradio>=6.20.0,<7
-torch>=2.2
+torch>=2.13.0
 open_clip_torch>=3.3.0
 huggingface_hub>=1.25.1
 numpy>=2.5.1
