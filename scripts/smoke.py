@@ -8,12 +8,17 @@ installed torch / Pillow / open_clip, and whether every module still parses.
 """
 import importlib, py_compile, pathlib, sys
 
+# Python puts THIS file's directory (scripts/) on sys.path, not the repo
+# root, so orchid_clip is not importable unless we add the root ourselves.
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 mods = ["orchid_clip", "orchid_clip.abstain", "orchid_clip.embedder", "orchid_clip.genus"]
 for m in mods:
     importlib.import_module(m)
     print(f"import ok   {m}")
 
-for f in sorted(pathlib.Path(".").rglob("*.py")):
+for f in sorted(ROOT.rglob("*.py")):
     if ".venv" in f.parts:
         continue
     py_compile.compile(str(f), doraise=True)
