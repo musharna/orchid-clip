@@ -1,7 +1,7 @@
 gradio>=4.44,<6
 torch>=2.2
 open_clip_torch>=3.3.0
-huggingface_hub>=0.23
+huggingface_hub>=1.25.1
 numpy>=2.5.1
 Pillow>=10.0
 # Python 3.13 removed the stdlib `audioop` module that gradio's transitive dep
