@@ -9,6 +9,13 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
+    # Dependabot's default for a repo it identifies as an APP (requirements.txt,
+    # no packaging metadata) is to raise the minimum version to the newest
+    # release -- so every torch/gradio release opens a floor-bump PR with no
+    # functional driver. increase-if-necessary raises the floor only when the
+    # current one genuinely will not resolve. Libraries are left on the default
+    # (widen), which is already correct for them.
+    versioning-strategy: "increase-if-necessary"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
