@@ -23,18 +23,18 @@ Orchidaceae is one of the largest plant families and one of the most heavily **l
 
 The result is two-sided, and the second half is the interesting one:
 
-1. **It lifts the long tail.** Top-1 climbs from 0.873 (BioCLIP 2) to **0.911**, with the gains landing exactly where they should — the smallest, longest-tailed Pleurothallidinae genera gain **+14 to +28 pp**.
-2. **There's a wall.** Across *six* independent extension attempts — a second modality, more capacity, sparse-autoencoder interpretability, open-set recognition, generative augmentation, and a model-free classical-CV control — **genus structure transfers and stays decodable while within-genus species identity hits a wall, every time.** A single failed extension is an anecdote; six, each with its own kill-gate, all landing on the same *genus-survives / species-locked* split, is evidence about the embedding itself.
+1. **It lifts the long tail.** Averaged **per genus**, top-1 climbs from 0.768 (BioCLIP 2) to **0.844** — **+7.6 pp** — and the gains land where they should: the smallest, longest-tailed Pleurothallidinae genera gain **+14 to +28 pp**. Averaged per _image_ the same run reads +3.8 pp, because _Ophrys_ alone is 69% of the holdout and is the genus that gains least (+2.8 pp). On a long-tail claim, the per-image average is the one that hides the tail.
+2. **There's a wall.** Across _six_ independent extension attempts — a second modality, more capacity, sparse-autoencoder interpretability, open-set recognition, generative augmentation, and a model-free classical-CV control — **genus structure transfers and stays decodable while within-genus species identity hits a wall, every time.** A single failed extension is an anecdote; six, each with its own kill-gate, all landing on the same _genus-survives / species-locked_ split, is evidence about the embedding itself.
 
 So the product isn't a species oracle. It's a **calibrated genus card** that abstains from a species call when it hasn't earned one.
 
 ## Try it
 
-| | |
-| --- | --- |
-| 🌿 **Live demo** | **[mjarnold/orchid-genus-id](https://huggingface.co/spaces/mjarnold/orchid-genus-id)** — upload a photo, get a calibrated genus (+ species when confident) |
-| 🤗 **Model** | **[mjarnold/orchid-clip-v8](https://huggingface.co/mjarnold/orchid-clip-v8)** (MIT) — frozen ViT-L/14, 768-d embeddings |
-| 📄 **Full write-up** | **[musharna.github.io/projects/OrchidCLIP](https://musharna.github.io/projects/OrchidCLIP/)** — the whole story, with interactive figures |
+|                      |                                                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🌿 **Live demo**     | **[mjarnold/orchid-genus-id](https://huggingface.co/spaces/mjarnold/orchid-genus-id)** — upload a photo, get a calibrated genus (+ species when confident) |
+| 🤗 **Model**         | **[mjarnold/orchid-clip-v8](https://huggingface.co/mjarnold/orchid-clip-v8)** (MIT) — frozen ViT-L/14, 768-d embeddings                                    |
+| 📄 **Full write-up** | **[musharna.github.io/projects/OrchidCLIP](https://musharna.github.io/projects/OrchidCLIP/)** — the whole story, with interactive figures                  |
 
 ## How the demo decides
 
@@ -53,39 +53,41 @@ flowchart LR
     classDef out fill:#581c87,stroke:#6b21a8,color:#f3e8ff;
 ```
 
-The **top-1/top-2 cosine margin** is the confidence signal. A threshold `τ` calibrated on a leakage-safe holdout holds **shown-species precision at ~90%** while still naming a species on **~60%** of photos; below `τ`, the card abstains to *"Genus X (species uncertain)"* and lists the candidate species. Genus is a softmax-then-sum-within-genus rollup over the top candidates — the level the model reliably nails.
+The **top-1/top-2 cosine margin** is the confidence signal. A threshold `τ` calibrated on a leakage-safe holdout holds **shown-species precision at ~90%** while still naming a species on **~60%** of photos; below `τ`, the card abstains to _"Genus X (species uncertain)"_ and lists the candidate species. Genus is a softmax-then-sum-within-genus rollup over the top candidates — the level the model reliably nails.
 
 ## Results
 
-**Closed-set benchmark** — each image ranked (image→text) against the **547** species present in a stratified 4,000-image holdout:
+**Closed-set benchmark** — each image ranked (image→text) against the **547** species present in a 4,000-image holdout. The split is a **hash-partitioned random 2%** (`md5(source_id)`), not stratified or class-balanced: it inherits the domain's own imbalance rather than correcting for it.
 
-| model          | top-1     | top-5     | genus top-1 |
-| -------------- | --------- | --------- | ----------- |
-| BioCLIP 2      | 0.873     | 0.978     | 0.992       |
-| **orchid-clip-v8** | **0.911** | **0.986** | **0.991**   |
+| model              | top-1 (per image) | top-1 (per genus) | top-5     | genus top-1 |
+| ------------------ | ----------------- | ----------------- | --------- | ----------- |
+| BioCLIP 2          | 0.873             | 0.768             | 0.978     | 0.992       |
+| **orchid-clip-v8** | **0.911**         | **0.844**         | **0.986** | **0.991**   |
 
-The +3.8 pp top-1 lift comes at no meaningful cost in genus accuracy — these are real *within-genus* species gains, not a coarsened boundary.
+Both columns come from the same run. Per image the lift is **+3.8 pp**; per genus it is **+7.6 pp**. They differ because _Ophrys_ is 2,754 of the 4,000 images and gains the least (+2.8 pp), so it dominates the per-image mean while counting once out of fourteen in the per-genus one. The per-genus column covers the 14 genera with at least 20 holdout images (3,937 of 4,000); the harness reports per-genus accuracy directly, and the macro average is taken over those values.
+
+The lift is **not uniform**: three of the fourteen genera regress — _Cymbidium_ −6.0 pp, _Laelia_ −4.2 pp, _Encyclia_ −1.0 pp — all well-sampled genera that BioCLIP 2 already handled well. Genus accuracy is essentially unchanged (0.992 → 0.991), so the gains are real _within-genus_ species gains, not a coarsened boundary.
 
 **Open-set** — the live demo ranks each photo against **all 18,858** named species, a 34× larger candidate pool. Same cross-modal image→text scoring; the open set is simply harder:
 
-| metric (open-set, the live path)          | value |
-| ----------------------------------------- | ----- |
-| genus top-1 (nearest species' genus)      | **~0.94** |
-| species top-1 (no abstain)                | 0.71  |
-| shown-species precision **with abstain**  | **0.90** @ 60% coverage |
+| metric (open-set, the live path)         | value                   |
+| ---------------------------------------- | ----------------------- |
+| genus top-1 (nearest species' genus)     | **~0.94**               |
+| species top-1 (no abstain)               | 0.71                    |
+| shown-species precision **with abstain** | **0.90** @ 60% coverage |
 
 ## The wall, in one table
 
 Six independent attempts to recover within-genus species identity — different mechanism classes, each with its own kill-gate:
 
-| extension lever                                      | genus | species |
-| --------------------------------------------------- | ----- | ------- |
-| second modality — herbarium scans / text descriptions | 0.81–0.93 | 0.005 → 0.686, then plateaus |
-| more capacity — 2× ViT-H backbone, clade MoE        | —     | no lever found |
-| interpretability — sparse autoencoder over features | partial | 0 of 13 morphology axes |
-| open-set recognition — reject never-seen species    | holds | novel-rejection 0.155 |
-| generative augmentation — synthesize tail species   | —     | no lift past 2–3 real photos |
-| model-free control — classical CV, no v8            | (within-photo only) | cross-modal corr ≈ 0 |
+| extension lever                                       | genus               | species                      |
+| ----------------------------------------------------- | ------------------- | ---------------------------- |
+| second modality — herbarium scans / text descriptions | 0.81–0.93           | 0.005 → 0.686, then plateaus |
+| more capacity — 2× ViT-H backbone, clade MoE          | —                   | no lever found               |
+| interpretability — sparse autoencoder over features   | partial             | 0 of 13 morphology axes      |
+| open-set recognition — reject never-seen species      | holds               | novel-rejection 0.155        |
+| generative augmentation — synthesize tail species     | —                   | no lift past 2–3 real photos |
+| model-free control — classical CV, no v8              | (within-photo only) | cross-modal corr ≈ 0         |
 
 It generalizes: this is the fine-grained-taxonomy face of the **modality gap** contrastive image–text models are known to exhibit, and no published herbarium-to-field plant system reports clean within-genus species transfer either. Full account in the [write-up](https://musharna.github.io/projects/OrchidCLIP/#can-the-species-gap-be-closed-six-attempts-one-wall).
 
@@ -115,20 +117,20 @@ That 768-d feature is a foundation embedding — cosine-rank it against species 
 
 ## What's in here
 
-| path | what |
-| --- | --- |
-| **`orchid_clip/`** | inference package — unified embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`) |
-| **`infer.py`**, **`app.py`** | the genus-ID card scoring core + its Gradio UI (the live Space) |
-| **`eval/`** | the eval harness — `eval_bioclip_vs_orchid_clip.py` (headline / per-genus), `audit_v7_confusions.py` (confusion structure), `calibrate_genus_abstain.py` (the abstain threshold) |
-| **`viz/`** | the four Plotly generators behind the write-up's interactive figures (risk–coverage, per-genus Δ, class-frequency, prototype UMAP) |
+| path                         | what                                                                                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`orchid_clip/`**           | inference package — unified embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                                                     |
+| **`infer.py`**, **`app.py`** | the genus-ID card scoring core + its Gradio UI (the live Space)                                                                                                                  |
+| **`eval/`**                  | the eval harness — `eval_bioclip_vs_orchid_clip.py` (headline / per-genus), `audit_v7_confusions.py` (confusion structure), `calibrate_genus_abstain.py` (the abstain threshold) |
+| **`viz/`**                   | the four Plotly generators behind the write-up's interactive figures (risk–coverage, per-genus Δ, class-frequency, prototype UMAP)                                               |
 
 > The `eval/` scripts and `app.py` read an upstream image catalog / shipped embedding assets that aren't distributed here — they document methodology and power the live Space, not a turnkey local reproduction. The model itself is fully self-contained on [🤗 Hub](https://huggingface.co/mjarnold/orchid-clip-v8).
 
 ## Limitations
 
-Every accuracy here is on an **iNaturalist-dominated** holdout, and v8 inherits that distribution. On other in-situ photo sources it degrades only mildly (−0.10 to −0.11 top-1), but on **botanically-curated archives** heavy with herbarium specimens and illustrations (IOSPE, POWO) it **collapses** — top-1 falls to 0.14–0.19, and even *genus* drops to ~0.55. The within-genus species ceiling is a property of field *photographs*; herbarium and illustration imagery is a separate, larger modality gap. **Deploy on field photos, not scanned plates.**
+Every accuracy here is on an **iNaturalist-dominated** holdout, and v8 inherits that distribution. On other in-situ photo sources it degrades only mildly (−0.10 to −0.11 top-1), but on **botanically-curated archives** heavy with herbarium specimens and illustrations (IOSPE, POWO) it **collapses** — top-1 falls to 0.14–0.19, and even _genus_ drops to ~0.55. The within-genus species ceiling is a property of field _photographs_; herbarium and illustration imagery is a separate, larger modality gap. **Deploy on field photos, not scanned plates.**
 
-This is a research artifact, not a substitute for vouchered taxonomy — cryptic sister species (e.g. *Cattleya labiata* / *trianae* / *warneri*) are genuinely conflatable. The abstain is the point, not a bug.
+This is a research artifact, not a substitute for vouchered taxonomy — cryptic sister species (e.g. _Cattleya labiata_ / _trianae_ / _warneri_) are genuinely conflatable. The abstain is the point, not a bug.
 
 ## Citation
 
