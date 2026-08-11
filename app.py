@@ -6,7 +6,7 @@ species, gated by a calibrated genus-abstain (show a species only when the
 top1-top2 cosine margin clears tau; else "Genus X (species uncertain)").
 
 Self-contained: the v8 image tower is pulled from the public model
-``mjarnold/orchid-clip-v8`` whose checkpoint sha256 (81ae2b09...) is identical
+``musharna/orchid-clip-v8`` whose checkpoint sha256 (81ae2b09...) is identical
 to the checkpoint the shipped text embeddings were built from, so the live
 margin signal IS the signal the abstain threshold was calibrated on.
 
@@ -29,12 +29,12 @@ from orchid_clip.embedder import load_embedder
 
 _HERE = Path(__file__).resolve().parent
 ASSETS = _HERE / "assets"
-HF_MODEL = os.environ.get("ORCHID_V8_REPO", "mjarnold/orchid-clip-v8")
+HF_MODEL = os.environ.get("ORCHID_V8_REPO", "musharna/orchid-clip-v8")
 
 TITLE = "🌿 Orchid Genus ID — with calibrated species abstain"
 DESCRIPTION = (
     "Upload an orchid photo. The model ([orchid-clip-v8]"
-    "(https://huggingface.co/mjarnold/orchid-clip-v8), a BioCLIP-2 ViT-L/14 "
+    "(https://huggingface.co/musharna/orchid-clip-v8), a BioCLIP-2 ViT-L/14 "
     "fine-tune) embeds it and ranks it against **18,858 orchid species**. "
     "Genus is the level it reliably nails (genus top-1 ≈ 0.94 on this cross-modal "
     "image↔text path); species within a "

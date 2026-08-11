@@ -3,8 +3,8 @@
 # 🌿 orchid-clip
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![🤗 Model](https://img.shields.io/badge/🤗_Model-orchid--clip--v8-FFD21E)](https://huggingface.co/mjarnold/orchid-clip-v8)
-[![🤗 Demo](https://img.shields.io/badge/🤗_Demo-orchid--genus--id-FF9D00)](https://huggingface.co/spaces/mjarnold/orchid-genus-id)
+[![🤗 Model](https://img.shields.io/badge/🤗_Model-orchid--clip--v8-FFD21E)](https://huggingface.co/musharna/orchid-clip-v8)
+[![🤗 Demo](https://img.shields.io/badge/🤗_Demo-orchid--genus--id-FF9D00)](https://huggingface.co/spaces/musharna/orchid-genus-id)
 [![Write-up](https://img.shields.io/badge/write--up-OrchidCLIP-2c5282)](https://musharna.github.io/projects/OrchidCLIP/)
 [![Base: BioCLIP 2](https://img.shields.io/badge/base-BioCLIP_2_ViT--L%2F14-2ca02c)](https://huggingface.co/imageomics/bioclip-2)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -32,8 +32,8 @@ So the product isn't a species oracle. It's a **calibrated genus card** that abs
 
 |                      |                                                                                                                                                            |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🌿 **Live demo**     | **[mjarnold/orchid-genus-id](https://huggingface.co/spaces/mjarnold/orchid-genus-id)** — upload a photo, get a calibrated genus (+ species when confident) |
-| 🤗 **Model**         | **[mjarnold/orchid-clip-v8](https://huggingface.co/mjarnold/orchid-clip-v8)** (MIT) — frozen ViT-L/14, 768-d embeddings                                    |
+| 🌿 **Live demo**     | **[musharna/orchid-genus-id](https://huggingface.co/spaces/musharna/orchid-genus-id)** — upload a photo, get a calibrated genus (+ species when confident) |
+| 🤗 **Model**         | **[musharna/orchid-clip-v8](https://huggingface.co/musharna/orchid-clip-v8)** (MIT) — frozen ViT-L/14, 768-d embeddings                                    |
 | 📄 **Full write-up** | **[musharna.github.io/projects/OrchidCLIP](https://musharna.github.io/projects/OrchidCLIP/)** — the whole story, with interactive figures                  |
 
 ## How the demo decides
@@ -102,7 +102,7 @@ import torch, open_clip
 from huggingface_hub import snapshot_download
 from PIL import Image
 
-ckpt = snapshot_download("mjarnold/orchid-clip-v8")          # model_config.json + open_clip_pytorch_model.bin
+ckpt = snapshot_download("musharna/orchid-clip-v8")          # model_config.json + open_clip_pytorch_model.bin
 model, _, preprocess = open_clip.create_model_and_transforms("ViT-L-14", pretrained=None)
 state = torch.load(f"{ckpt}/open_clip_pytorch_model.bin", map_location="cpu", weights_only=False)
 model.load_state_dict(state["state_dict"]); model.eval()     # weights live under state["state_dict"]
@@ -124,7 +124,7 @@ That 768-d feature is a foundation embedding — cosine-rank it against species 
 | **`eval/`**                  | the eval harness — `eval_bioclip_vs_orchid_clip.py` (headline / per-genus), `audit_v7_confusions.py` (confusion structure), `calibrate_genus_abstain.py` (the abstain threshold) |
 | **`viz/`**                   | the four Plotly generators behind the write-up's interactive figures (risk–coverage, per-genus Δ, class-frequency, prototype UMAP)                                               |
 
-> The `eval/` scripts and `app.py` read an upstream image catalog / shipped embedding assets that aren't distributed here — they document methodology and power the live Space, not a turnkey local reproduction. The model itself is fully self-contained on [🤗 Hub](https://huggingface.co/mjarnold/orchid-clip-v8).
+> The `eval/` scripts and `app.py` read an upstream image catalog / shipped embedding assets that aren't distributed here — they document methodology and power the live Space, not a turnkey local reproduction. The model itself is fully self-contained on [🤗 Hub](https://huggingface.co/musharna/orchid-clip-v8).
 
 ## Limitations
 
@@ -140,7 +140,7 @@ This is a research artifact, not a substitute for vouchered taxonomy — cryptic
   title  = {orchid-clip: a long-tail-aware CLIP for fine-grained orchid identification},
   year   = {2026},
   url    = {https://github.com/musharna/orchid-clip},
-  note   = {Model: huggingface.co/mjarnold/orchid-clip-v8}
+  note   = {Model: huggingface.co/musharna/orchid-clip-v8}
 }
 ```
 
