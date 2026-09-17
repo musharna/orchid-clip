@@ -54,8 +54,10 @@ class HFEmbedder:
         from transformers import AutoModel, AutoProcessor
 
         self.device = device
-        self.model = AutoModel.from_pretrained(ckpt).to(device).eval()
-        self.processor = AutoProcessor.from_pretrained(ckpt)
+        # ckpt is the caller's local dir or Hub id; a revision pin belongs in
+        # the caller's config (app.py pins HF_REVISION), not here.
+        self.model = AutoModel.from_pretrained(ckpt).to(device).eval()  # nosec B615 - see above
+        self.processor = AutoProcessor.from_pretrained(ckpt)  # nosec B615 - see above
 
     def preprocess_image(self, image: Image.Image) -> torch.Tensor:
         enc = self.processor(images=image, return_tensors="pt")

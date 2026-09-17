@@ -166,9 +166,12 @@ def _level_traces(df, level, order, colors, labels):
                     "<br>%{customdata[1]} · tribe %{customdata[2]}"
                     "<br>%{customdata[3]} images<extra></extra>"
                 ),
-                marker=dict(
-                    size=4, opacity=0.75, color=colors[cat], line=dict(width=0)
-                ),
+                marker={
+                    "size": 4,
+                    "opacity": 0.75,
+                    "color": colors[cat],
+                    "line": {"width": 0},
+                },
                 visible=(level == "subfamily"),
             )
         )
@@ -197,43 +200,43 @@ def write_html(
 
     fig.update_layout(
         updatemenus=[
-            dict(
-                type="dropdown",
-                direction="down",
-                showactive=True,
-                x=0.01,
-                xanchor="left",
-                y=1.10,
-                yanchor="top",
-                bgcolor="white",
-                bordercolor="#cccccc",
-                buttons=[
-                    dict(
-                        label="color: subfamily",
-                        method="update",
-                        args=[
+            {
+                "type": "dropdown",
+                "direction": "down",
+                "showactive": True,
+                "x": 0.01,
+                "xanchor": "left",
+                "y": 1.10,
+                "yanchor": "top",
+                "bgcolor": "white",
+                "bordercolor": "#cccccc",
+                "buttons": [
+                    {
+                        "label": "color: subfamily",
+                        "method": "update",
+                        "args": [
                             {"visible": vis_sub},
                             {"title.text": title_sub, "legend.title.text": "subfamily"},
                         ],
-                    ),
-                    dict(
-                        label="color: tribe",
-                        method="update",
-                        args=[
+                    },
+                    {
+                        "label": "color: tribe",
+                        "method": "update",
+                        "args": [
                             {"visible": vis_tribe},
                             {"title.text": title_tribe, "legend.title.text": "tribe"},
                         ],
-                    ),
+                    },
                 ],
-            )
+            }
         ],
-        title=dict(text=title_sub, x=0.0, font=dict(size=14)),
+        title={"text": title_sub, "x": 0.0, "font": {"size": 14}},
         legend_title_text="subfamily",
-        legend=dict(itemsizing="constant"),
-        margin=dict(l=10, r=10, t=70, b=10),
+        legend={"itemsizing": "constant"},
+        margin={"l": 10, "r": 10, "t": 70, "b": 10},
         plot_bgcolor="white",
-        xaxis=dict(showgrid=False, zeroline=False, visible=False),
-        yaxis=dict(showgrid=False, zeroline=False, visible=False),
+        xaxis={"showgrid": False, "zeroline": False, "visible": False},
+        yaxis={"showgrid": False, "zeroline": False, "visible": False},
         autosize=True,
     )
     os.makedirs(os.path.dirname(os.path.abspath(out_html)), exist_ok=True)

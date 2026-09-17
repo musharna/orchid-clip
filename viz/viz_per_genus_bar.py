@@ -83,26 +83,32 @@ def main() -> None:
         barmode="group",
         bargap=0.25,
         bargroupgap=0.05,
-        title=dict(
-            text=(
+        title={
+            "text": (
                 "Per-genus top-1 accuracy — orchid-clip-v8 vs BioCLIP 2"
                 "<br><sup>sorted by long-tail Δ; lift concentrates on the "
                 "smallest, longest-tailed Pleurothallidinae genera</sup>"
             ),
-            font=dict(size=15),
-            x=0.02,
-        ),
-        xaxis=dict(
-            title="top-1 accuracy",
-            range=[0, 1.02],
-            tickformat=".1f",
-            showgrid=True,
-            gridcolor="rgba(0,0,0,0.06)",
-        ),
-        yaxis=dict(title="", automargin=True),
-        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="right", x=1.0),
+            "font": {"size": 15},
+            "x": 0.02,
+        },
+        xaxis={
+            "title": "top-1 accuracy",
+            "range": [0, 1.02],
+            "tickformat": ".1f",
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.06)",
+        },
+        yaxis={"title": "", "automargin": True},
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.0,
+            "xanchor": "right",
+            "x": 1.0,
+        },
         plot_bgcolor="white",
-        margin=dict(l=10, r=20, t=70, b=45),
+        margin={"l": 10, "r": 20, "t": 70, "b": 45},
         autosize=True,
         height=560,
     )

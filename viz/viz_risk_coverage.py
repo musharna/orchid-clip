@@ -55,7 +55,7 @@ def main() -> None:
     # target-precision guide line.
     fig.add_hline(
         y=d["target_precision"],
-        line=dict(color="#bbbbbb", width=1, dash="dot"),
+        line={"color": "#bbbbbb", "width": 1, "dash": "dot"},
         annotation_text=f"target {d['target_precision']:.2f}",
         annotation_position="bottom left",
         annotation_font_size=11,
@@ -67,14 +67,19 @@ def main() -> None:
             x=cov,
             y=prec,
             mode="lines+markers",
-            line=dict(color="#2c5282", width=2),
-            marker=dict(
-                size=6,
-                color=tau,
-                colorscale="Viridis",
-                showscale=True,
-                colorbar=dict(title="margin τ", thickness=12, len=0.6, x=1.02),
-            ),
+            line={"color": "#2c5282", "width": 2},
+            marker={
+                "size": 6,
+                "color": tau,
+                "colorscale": "Viridis",
+                "showscale": True,
+                "colorbar": {
+                    "title": "margin τ",
+                    "thickness": 12,
+                    "len": 0.6,
+                    "x": 1.02,
+                },
+            },
             customdata=tau,
             hovertemplate=(
                 "coverage %{x:.1%}<br>shown-species precision %{y:.3f}"
@@ -91,15 +96,15 @@ def main() -> None:
             x=[op_cov],
             y=[op_prec],
             mode="markers+text",
-            marker=dict(
-                size=15,
-                color="#e8590c",
-                symbol="star",
-                line=dict(color="white", width=1),
-            ),
+            marker={
+                "size": 15,
+                "color": "#e8590c",
+                "symbol": "star",
+                "line": {"color": "white", "width": 1},
+            },
             text=[f"  operating point<br>  τ={op_tau:.4f}"],
             textposition="middle right",
-            textfont=dict(size=12, color="#e8590c"),
+            textfont={"size": 12, "color": "#e8590c"},
             hovertemplate=(
                 f"operating point<br>coverage {op_cov:.1%}"
                 f"<br>precision {op_prec:.3f}<br>τ {op_tau:.4f}<extra></extra>"
@@ -114,15 +119,15 @@ def main() -> None:
             x=[1.0],
             y=[base_prec],
             mode="markers+text",
-            marker=dict(
-                size=11,
-                color="#868e96",
-                symbol="circle",
-                line=dict(color="white", width=1),
-            ),
+            marker={
+                "size": 11,
+                "color": "#868e96",
+                "symbol": "circle",
+                "line": {"color": "white", "width": 1},
+            },
             text=[f"no abstain: {base_prec:.2f}  "],
             textposition="middle left",
-            textfont=dict(size=11, color="#495057"),
+            textfont={"size": 11, "color": "#495057"},
             hovertemplate=(
                 f"no abstain (show every photo)<br>coverage 100%"
                 f"<br>precision {base_prec:.3f}<extra></extra>"
@@ -132,31 +137,31 @@ def main() -> None:
     )
 
     fig.update_layout(
-        title=dict(
-            text=(
+        title={
+            "text": (
                 "Shown-species precision vs coverage — the abstain trade-off"
                 f"<br><sup>orchid-clip-v8 image→text margin, n={d['n_calib']:,} "
                 "leakage-safe in-vocab holdout</sup>"
             ),
-            font=dict(size=15),
-            x=0.02,
-        ),
-        xaxis=dict(
-            title="coverage (fraction of photos given a species)",
-            tickformat=".0%",
-            range=[-0.02, 1.05],
-            showgrid=True,
-            gridcolor="rgba(0,0,0,0.06)",
-        ),
-        yaxis=dict(
-            title="shown-species precision",
-            tickformat=".2f",
-            range=[min(prec) - 0.03, 1.02],
-            showgrid=True,
-            gridcolor="rgba(0,0,0,0.06)",
-        ),
+            "font": {"size": 15},
+            "x": 0.02,
+        },
+        xaxis={
+            "title": "coverage (fraction of photos given a species)",
+            "tickformat": ".0%",
+            "range": [-0.02, 1.05],
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.06)",
+        },
+        yaxis={
+            "title": "shown-species precision",
+            "tickformat": ".2f",
+            "range": [min(prec) - 0.03, 1.02],
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.06)",
+        },
         plot_bgcolor="white",
-        margin=dict(l=60, r=20, t=70, b=55),
+        margin={"l": 60, "r": 20, "t": 70, "b": 55},
         autosize=True,
     )
 
