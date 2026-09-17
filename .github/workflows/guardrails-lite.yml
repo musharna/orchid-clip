@@ -1,0 +1,108 @@
+name: guardrails
+
+# From ~/repo-template (scripts/guardrails-sync.sh --variant lite). The LITE
+# variant is for Python repos with NO pyproject and NO test suite (analysis
+# scripts, a scraper, a notebook repo): there is nothing for a test job to run,
+# so it does not pretend to. Add tests and switch to the full guardrails.yml.
+#   lint      ruff check + pre-commit non-modifying hooks + house-rule selftest
+#   security  pip-audit on requirements.txt + bandit
+#   review    Claude code review posted on the PR (needs CLAUDE_CODE_OAUTH_TOKEN)
+# Action SHAs verified to exist on 2026-09-11.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardrails-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      # No pyproject, so no repo-pinned ruff: the template pin is the baseline.
+      # Rule scope lives in the repo's ruff.toml (if any), never in this file.
+      - name: ruff check (no fix)
+        run: uvx ruff@0.16.7 check .
+      - name: pre-commit non-modifying hooks + house rules (all files)
+        env:
+          SKIP: ruff-check,ruff-format,end-of-file-fixer,trailing-whitespace
+        run: uvx pre-commit run --all-files --show-diff-on-failure
+      - name: house-rule hooks can fail (negative controls)
+        run: bash scripts/guardrails-selftest.sh
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - name: pip-audit (known-vulnerable dependencies)
+        # requirements.txt is the ONLY dependency record in a lite repo. A repo
+        # without one has nothing auditable, and "nothing to audit" must not
+        # read as "audited clean": fail loud, write the file.
+        run: |
+          if [ ! -f requirements.txt ]; then
+            echo "::error::no requirements.txt: pip-audit has nothing to audit, so this job cannot pass"; exit 1
+          fi
+          uvx pip-audit -r requirements.txt --strict --desc on
+      - name: bandit (insecure code patterns, medium+ severity)
+        run: uvx bandit -q -r . -ll -x ./tests,./.venv
+
+  review:
+    # Automated Claude code review. Fails LOUD when the key is missing rather
+    # than silently skipping: a review step that quietly no-ops is worse than
+    # none, because the green check claims a review happened.
+    # Dependabot-authored PRs never receive repository secrets (GitHub design),
+    # so there the token is unreachable rather than unset: skip, don't fail.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: CLAUDE_CODE_OAUTH_TOKEN is configured
+        env:
+          KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN secret is not set (Pro/Max: run claude setup-token locally). Add it: gh secret set CLAUDE_CODE_OAUTH_TOKEN -R ${{ github.repository }}"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@4169884de317bc1b4cb1b47f4476d76fed92b384 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+            Report only findings you can point to a line for, most severe first.
+            Bar: this code was largely machine-written, so hold it to a HIGHER
+            bar than hand-written code. Check specifically for:
+            1. Tests that cannot fail: assertions that pass on the broken code,
+               negative checks with no positive control, fixtures that encode the
+               belief under test, wall-clock budgets used as correctness checks.
+            2. Guards whose predicate cannot observe what it must discriminate.
+            3. Silent no-ops: bare str.replace(), unasserted return values,
+               swallowed exceptions, fallbacks that hide failure.
+            4. Correctness: off-by-one, unit/scale errors, wrong-name-right-value,
+               regex backtracking, resource leaks, concurrency.
+            5. Security: injection, path traversal, secrets, unsafe deserialisation.
+            Ignore style. If nothing meets the bar, say so in one line.
+            If a sticky review comment from you already exists on this PR, review
+            only the commits since it and post a short delta, not a full re-review.
+            Post the review as a PR comment via gh.
+          claude_args: |
+            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
+            --max-turns 80

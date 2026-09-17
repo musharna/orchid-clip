@@ -42,7 +42,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from orchid_clip.embedder import load_embedder  # noqa: E402
+from orchid_clip.embedder import load_embedder
 
 ENSEMBLE_TEMPLATES = [
     "a photograph of {} orchid flower",
@@ -58,7 +58,7 @@ MIN_PER_GENUS = 20  # only report per-genus accuracy when val has enough example
 
 
 def split_bucket(source_id: str) -> float:
-    h = hashlib.md5(source_id.encode("utf-8")).digest()
+    h = hashlib.md5(source_id.encode("utf-8"), usedforsecurity=False).digest()
     return int.from_bytes(h[:4], "big") / (1 << 32)
 
 
@@ -129,7 +129,7 @@ def load_val_rows(
         for r in rows:
             by_sp[r["binomial"]].append(r)
         capped: list[dict] = []
-        for sp, rs in by_sp.items():
+        for rs in by_sp.values():
             if min_imgs_per_species and len(rs) < min_imgs_per_species:
                 continue
             if len(rs) > cap_per_species:

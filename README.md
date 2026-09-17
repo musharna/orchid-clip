@@ -102,15 +102,22 @@ import torch, open_clip
 from huggingface_hub import snapshot_download
 from PIL import Image
 
-ckpt = snapshot_download("musharna/orchid-clip-v8")          # model_config.json + open_clip_pytorch_model.bin
-model, _, preprocess = open_clip.create_model_and_transforms("ViT-L-14", pretrained=None)
-state = torch.load(f"{ckpt}/open_clip_pytorch_model.bin", map_location="cpu", weights_only=False)
-model.load_state_dict(state["state_dict"]); model.eval()     # weights live under state["state_dict"]
+ckpt = snapshot_download(
+    "musharna/orchid-clip-v8"
+)  # model_config.json + open_clip_pytorch_model.bin
+model, _, preprocess = open_clip.create_model_and_transforms(
+    "ViT-L-14", pretrained=None
+)
+state = torch.load(
+    f"{ckpt}/open_clip_pytorch_model.bin", map_location="cpu", weights_only=False
+)
+model.load_state_dict(state["state_dict"])
+model.eval()  # weights live under state["state_dict"]
 
 img = preprocess(Image.open("orchid.jpg").convert("RGB")).unsqueeze(0)
 with torch.no_grad():
     feat = model.encode_image(img)
-feat = feat / feat.norm(dim=-1, keepdim=True)                # 768-d, L2-normalized
+feat = feat / feat.norm(dim=-1, keepdim=True)  # 768-d, L2-normalized
 ```
 
 That 768-d feature is a foundation embedding — cosine-rank it against species text or image centroids for ID, or use it directly for retrieval and downstream heads (bloom-stage, disease, mounting-style). The model was trained on a **1.14M-image pool across 5,124 species** (≥3 images/species, after WCVP synonym dedup + a cosine quality filter), with an inverse-square-root long-tail sampler.

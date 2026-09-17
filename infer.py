@@ -29,7 +29,7 @@ def load_assets(assets_dir: str | Path):
         raise ValueError("text_embeddings / binomials size mismatch")
     abstain = load_config(str(assets / "genus_abstain.json"))
     tax_path = assets / "taxonomy.json"
-    tax = json.load(open(tax_path)) if tax_path.exists() else {}
+    tax = json.loads(tax_path.read_text()) if tax_path.exists() else {}
     return text_emb, binomials, abstain, tax
 
 

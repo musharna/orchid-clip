@@ -56,7 +56,7 @@ def main() -> None:
             x=rank,
             y=counts,
             mode="markers",
-            marker=dict(size=4, color="#2c5282", opacity=0.7),
+            marker={"size": 4, "color": "#2c5282", "opacity": 0.7},
             hovertext=species,
             hovertemplate="rank %{x}<br><b>%{hovertext}</b><br>%{y:,} images<extra></extra>",
             name="species",
@@ -65,7 +65,7 @@ def main() -> None:
     # sampler-cap guide (fixed at 2,000, not the data max).
     fig.add_hline(
         y=SAMPLER_CAP,
-        line=dict(color="#e8590c", width=1, dash="dot"),
+        line={"color": "#e8590c", "width": 1, "dash": "dot"},
         annotation_text=f"sampler cap {SAMPLER_CAP:,}  ·  {n_above_cap} species above",
         annotation_position="top right",
         annotation_font_size=11,
@@ -73,36 +73,36 @@ def main() -> None:
     # median guide.
     fig.add_hline(
         y=median,
-        line=dict(color="#999999", width=1, dash="dot"),
+        line={"color": "#999999", "width": 1, "dash": "dot"},
         annotation_text=f"median {median} rows",
         annotation_position="bottom right",
         annotation_font_size=11,
     )
 
     fig.update_layout(
-        title=dict(
-            text=(
+        title={
+            "text": (
                 "Training-pool species-frequency distribution (log-log)"
                 f"<br><sup>{n:,} species; median {median} rows, floor {floor}, "
                 f"peak {peak:,}; {n_above_cap} species above the 2,000 sampler cap</sup>"
             ),
-            font=dict(size=15),
-            x=0.02,
-        ),
-        xaxis=dict(
-            title="species rank (most-photographed → rarest)",
-            type="log",
-            showgrid=True,
-            gridcolor="rgba(0,0,0,0.06)",
-        ),
-        yaxis=dict(
-            title="images in training pool",
-            type="log",
-            showgrid=True,
-            gridcolor="rgba(0,0,0,0.06)",
-        ),
+            "font": {"size": 15},
+            "x": 0.02,
+        },
+        xaxis={
+            "title": "species rank (most-photographed → rarest)",
+            "type": "log",
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.06)",
+        },
+        yaxis={
+            "title": "images in training pool",
+            "type": "log",
+            "showgrid": True,
+            "gridcolor": "rgba(0,0,0,0.06)",
+        },
         plot_bgcolor="white",
-        margin=dict(l=60, r=20, t=70, b=55),
+        margin={"l": 60, "r": 20, "t": 70, "b": 55},
         autosize=True,
     )
 

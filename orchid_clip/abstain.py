@@ -87,7 +87,8 @@ def load_config(path: str | None = None) -> AbstainConfig:
         return AbstainConfig(
             signal="max_cosine", tau=-1.0, target_precision=0.0, enabled=False
         )
-    raw = open(resolved).read().strip()
+    with open(resolved) as fh:
+        raw = fh.read().strip()
     if not raw:  # empty file == "missing/empty config -> layer off" (spec section 7)
         return AbstainConfig(
             signal="max_cosine", tau=-1.0, target_precision=0.0, enabled=False

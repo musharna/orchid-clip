@@ -41,11 +41,10 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from eval_bioclip_vs_orchid_clip import (  # noqa: E402
+from eval_bioclip_vs_orchid_clip import (
     OrchidCLIP,
     load_val_rows,
 )
-
 
 TOP_N_CONFUSION_PAIRS = 30  # top pairs to report
 TOP_N_EXAMPLES_PER_PAIR = 5  # species-level examples per (genus, genus) pair
@@ -161,19 +160,27 @@ def format_markdown(report: dict, model_tag: str) -> str:
     lines = [
         f"# v7 hard-negative audit — {model_tag}",
         "",
-        f"N_val = {report['n_val']}, correct = {report['n_correct']} "
-        f"({report['top1']:.1%}), wrong = {report['n_wrong']}",
+        (
+            f"N_val = {report['n_val']}, correct = {report['n_correct']} "
+            f"({report['top1']:.1%}), wrong = {report['n_wrong']}"
+        ),
         "",
-        f"- cross-genus errors: {report['cross_genus_errors']} "
-        f"({report['cross_genus_errors'] / max(1, report['n_wrong']):.1%} of wrong)",
-        f"- intra-genus errors: {report['intra_genus_errors']} "
-        f"({report['intra_genus_errors'] / max(1, report['n_wrong']):.1%} of wrong)",
+        (
+            f"- cross-genus errors: {report['cross_genus_errors']} "
+            f"({report['cross_genus_errors'] / max(1, report['n_wrong']):.1%} of wrong)"
+        ),
+        (
+            f"- intra-genus errors: {report['intra_genus_errors']} "
+            f"({report['intra_genus_errors'] / max(1, report['n_wrong']):.1%} of wrong)"
+        ),
         "",
         "## Top cross-genus confusions",
         "",
-        "Cross-genus errors are the fixable ones — more/better training data for "
-        "the *true* genus typically collapses these. `sim_gap` is how much more "
-        "confident v7 was about the wrong genus (higher = more entrenched).",
+        (
+            "Cross-genus errors are the fixable ones — more/better training data for "
+            "the *true* genus typically collapses these. `sim_gap` is how much more "
+            "confident v7 was about the wrong genus (higher = more entrenched)."
+        ),
         "",
         "| true_genus → pred_genus | count | % of true_genus val | mean sim_gap | examples |",
         "|-------------------------|-------|---------------------|--------------|----------|",
@@ -196,10 +203,12 @@ def format_markdown(report: dict, model_tag: str) -> str:
             "",
             "## Top intra-genus confusions",
             "",
-            "Intra-genus errors are often taxonomic ambiguity (sister species, "
-            "hybrids, ID disagreement in the val set). Data alone rarely fixes "
-            "these — worth checking whether the confused pairs are real problems "
-            "or known-ambiguous complexes.",
+            (
+                "Intra-genus errors are often taxonomic ambiguity (sister species, "
+                "hybrids, ID disagreement in the val set). Data alone rarely fixes "
+                "these — worth checking whether the confused pairs are real problems "
+                "or known-ambiguous complexes."
+            ),
             "",
             "| genus | count | total val | err rate | examples |",
             "|-------|-------|-----------|----------|----------|",

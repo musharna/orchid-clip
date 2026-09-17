@@ -30,6 +30,11 @@ from orchid_clip.embedder import load_embedder
 _HERE = Path(__file__).resolve().parent
 ASSETS = _HERE / "assets"
 HF_MODEL = os.environ.get("ORCHID_V8_REPO", "musharna/orchid-clip-v8")
+# Pinned to a commit so a rewritten Hub repo cannot swap the weights under a
+# deployed Space (bandit B615). Bump deliberately: main sha as of 2026-09-17.
+HF_REVISION = os.environ.get(
+    "ORCHID_V8_REVISION", "2e33008ac00f88389345ca863c4b319589f29827"
+)
 
 TITLE = "🌿 Orchid Genus ID — with calibrated species abstain"
 DESCRIPTION = (
@@ -67,7 +72,7 @@ def _resolve_ckpt() -> str:
     from huggingface_hub import snapshot_download
 
     print(f"[space] downloading {HF_MODEL} from the HuggingFace Hub...")
-    return snapshot_download(HF_MODEL)
+    return snapshot_download(HF_MODEL, revision=HF_REVISION)
 
 
 _EMB = None
@@ -121,4 +126,4 @@ with gr.Blocks(title="Orchid Genus ID") as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
+    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", "7860")))  # nosec B104 - Space container; must bind all interfaces

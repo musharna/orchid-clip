@@ -54,8 +54,10 @@ class HFEmbedder:
         from transformers import AutoModel, AutoProcessor
 
         self.device = device
-        self.model = AutoModel.from_pretrained(ckpt).to(device).eval()
-        self.processor = AutoProcessor.from_pretrained(ckpt)
+        # ckpt is the caller's local dir or Hub id; a revision pin belongs in
+        # the caller's config (app.py pins HF_REVISION), not here.
+        self.model = AutoModel.from_pretrained(ckpt).to(device).eval()  # nosec B615 - see above
+        self.processor = AutoProcessor.from_pretrained(ckpt)  # nosec B615 - see above
 
     def preprocess_image(self, image: Image.Image) -> torch.Tensor:
         enc = self.processor(images=image, return_tensors="pt")
@@ -100,7 +102,11 @@ class OpenCLIPEmbedder:
         state = torch.load(
             os.path.join(ckpt, "open_clip_pytorch_model.bin"),
             map_location="cpu",
-            weights_only=False,
+            # Verified 2026-09-17 against the real 1.7 GB v8 checkpoint at
+            # HF_REVISION: it is {"state_dict": tensors, "model_name": str},
+            # which weights_only=True loads. A pickle-bearing file now fails
+            # instead of executing (bandit B614).
+            weights_only=True,
         )
         self.model.load_state_dict(state["state_dict"])
         self.model.to(device).eval()
