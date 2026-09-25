@@ -1,6 +1,5 @@
-"""Vendored minimal orchid_clip subset for the standalone HF Space.
+"""Minimal orchid_clip inference package.
 
-Only embedder / abstain / genus are bundled (image-embed + genus-abstain path).
-Kept byte-identical to the upstream source so the Space behavior matches the
-calibrated pipeline. Do not add the SDXL / identify / fusion modules here.
+Only the embedder, the species abstain, and the genus rollup are included
+(the image-embedding + genus-abstain path used by the demo).
 """

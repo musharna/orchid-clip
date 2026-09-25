@@ -6,8 +6,6 @@ species candidates; above tau it shows the top species, otherwise it falls back 
 the genus rollup ("Genus X, species uncertain"). The genus rollup is always
 computed (reusing orchid_clip.genus). ``load_config`` reads the committed
 calibration artifact; a missing artifact disables the layer (current behavior).
-
-Spec: specs/stage12_a3_genus_abstain.md sections 5-7.
 """
 
 from __future__ import annotations
@@ -89,7 +87,7 @@ def load_config(path: str | None = None) -> AbstainConfig:
         )
     with open(resolved) as fh:
         raw = fh.read().strip()
-    if not raw:  # empty file == "missing/empty config -> layer off" (spec section 7)
+    if not raw:  # empty file == missing config -> layer off
         return AbstainConfig(
             signal="max_cosine", tau=-1.0, target_precision=0.0, enabled=False
         )

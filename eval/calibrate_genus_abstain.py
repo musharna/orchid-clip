@@ -1,15 +1,16 @@
-"""A3 genus-abstain calibration — CPU, zero-GPU.
+"""Genus-abstain calibration (CPU only).
 
-Scores leakage-safe in-vocab positives (g1_positives.image_emb @ v8_text_embeddings.T,
-the exact live fp.v8_scores signal) to build a risk-coverage curve, picks the
-better of {max_cosine, margin} by coverage at the target precision, selects the
-smallest tau whose covered-species precision >= target, validates the genus floor
-on the genuine-novel negatives, and writes orchid_clip_fusion/genus_abstain.json.
+Scores in-vocabulary positives (image embeddings @ v8 text embeddings) to build
+a risk-coverage curve, picks the better of {max_cosine, margin} by coverage at
+the target precision, selects the smallest tau whose covered-species precision
+>= target, reports genus accuracy on negatives from species not seen in
+training, and writes genus_abstain.json (path set by --out).
 
-Pure core (score_signals / risk_coverage_curve / select_tau / pick_signal /
-genus_floor) is unit-tested; main() is real-execution. No torch, no sklearn.
+tau is chosen on the positives, and the achieved precision / coverage written
+to the JSON are measured on those same positives, so they are in-sample.
 
-Spec: specs/stage12_a3_genus_abstain.md section 4.
+score_signals / risk_coverage_curve / select_tau / pick_signal / genus_floor are
+pure functions; main() does the file I/O. No torch, no sklearn.
 """
 
 from __future__ import annotations

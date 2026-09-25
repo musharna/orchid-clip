@@ -1,14 +1,12 @@
 """Interactive Plotly UMAP of orchid-clip-v8 image prototypes.
 
-The browser-explorable twin of ``paper/figures/fig4_umap_subfamily.png`` (rendered
-by ``scripts/embedding_topology_eval.py``). Loads the per-binomial v8 image
-centroids, projects them with the *same* UMAP hyper-parameters as the static
-cover, and writes a single self-describing HTML page where every point is a
-species you can hover to identify.
+Loads the per-binomial v8 image centroids, projects them with UMAP, and writes
+a single self-describing HTML page where every point is a species you can
+hover to identify.
 
 The interactive HTML carries a **color-by dropdown** (subfamily ↔ tribe): the
 same projection recolored at two taxonomic depths. Genus is intentionally not a
-toggle option — there are thousands of genera, so a categorical legend is
+toggle option — there are hundreds of genera, so a categorical legend is
 useless; the hover already names each point's genus.
 
 Inputs (defaults are repo-relative; the .npz is git-ignored / DVC-tracked):
@@ -30,7 +28,7 @@ stay pixel-consistent. At least one output is required.
 
 Run locally (CPU, ~2-4 min):
 
-    python3 scripts/viz_prototype_umap_interactive.py \
+    python3 viz/viz_prototype_umap_interactive.py \
         --prototypes data/osr/prototypes_full.npz \
         --taxonomy   data/label_audit/taxonomy.json \
         --out-html   /path/to/site/assets/plotly/orchidclip_umap_subfamily.html \
