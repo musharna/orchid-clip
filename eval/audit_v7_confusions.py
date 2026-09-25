@@ -16,7 +16,7 @@ legit taxonomic boundary problem.
 Run on a CUDA host (current default = v8):
 
     python \\
-        scripts/audit_v7_confusions.py \\
+        eval/audit_v7_confusions.py \\
         --orchid-clip ./orchid-clip-v8 \\
         --db ./orchid_images.db \\
         --image-root ./images \\
@@ -243,8 +243,8 @@ def main() -> None:
         default=0.0,
         help=(
             "Lower bound of hash bucket to score (default 0.0). Set to 0.02 + "
-            "--val-fraction 0.04 to score the held-back P_conf slice disjoint "
-            "from §5.1 eval (v13 leakage fix)."
+            "--val-fraction 0.04 to score a held-back slice disjoint from the "
+            "default holdout."
         ),
     )
     ap.add_argument(
@@ -253,8 +253,8 @@ def main() -> None:
         default=TOP_N_CONFUSION_PAIRS,
         help=(
             "Genera to report in top_intra_genus_pairs / top_cross_genus_pairs "
-            f"(default {TOP_N_CONFUSION_PAIRS}). v13 P_conf builds want this "
-            "raised so the JSON captures more of the long tail."
+            f"(default {TOP_N_CONFUSION_PAIRS}). Raise it to capture more of "
+            "the long tail in the JSON."
         ),
     )
     ap.add_argument(
@@ -263,8 +263,8 @@ def main() -> None:
         default=TOP_N_EXAMPLES_PER_PAIR,
         help=(
             "Species-level examples per (genus, genus) pair "
-            f"(default {TOP_N_EXAMPLES_PER_PAIR}). v13 P_conf builds need this "
-            "much higher (e.g. 100) so individual species pairs aren't truncated."
+            f"(default {TOP_N_EXAMPLES_PER_PAIR}). Raise it (e.g. 100) so "
+            "individual species pairs aren't truncated."
         ),
     )
     ap.add_argument("--out", required=True, help="JSON output path")

@@ -1,20 +1,9 @@
 version: 2
-# This repository had no Dependabot configuration, so nothing ever proposed an
-# update and its pinned versions could drift silently. Node 20 is removed from
-# GitHub-hosted runners on 2026-09-16, which is exactly the kind of deadline a
-# repo with no update proposals walks into unwarned.
-#
-# Minor/patch are grouped to keep PR volume low. Majors arrive individually --
-# those are the ones that carry runtime bumps and deserve their own CI run.
+# Minor/patch updates are grouped; majors arrive individually.
 updates:
   - package-ecosystem: "pip"
     directory: "/"
-    # Dependabot's default for a repo it identifies as an APP (requirements.txt,
-    # no packaging metadata) is to raise the minimum version to the newest
-    # release -- so every torch/gradio release opens a floor-bump PR with no
-    # functional driver. increase-if-necessary raises the floor only when the
-    # current one genuinely will not resolve. Libraries are left on the default
-    # (widen), which is already correct for them.
+    # Raise a requirement's floor only when the current one will not resolve.
     versioning-strategy: "increase-if-necessary"
     schedule:
       interval: "weekly"

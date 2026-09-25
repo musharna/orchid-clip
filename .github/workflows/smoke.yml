@@ -1,13 +1,7 @@
 name: smoke
 
-# orchid-clip had no workflows at all, so pull requests got zero checks. That
-# meant dependency PRs showed "mergeable / clean" while nothing had verified
-# them -- "clean" only ever meant "no merge conflicts".
-#
-# There is no unit-test suite here, so this is an import/compile smoke rather
-# than a test run. It is scoped to what a dependency bump actually breaks:
-# whether the package still imports against the installed torch / Pillow /
-# open_clip, and whether every module still parses.
+# Import/compile smoke check (there is no unit-test suite): the package still
+# imports against the installed dependencies and every module still parses.
 
 on:
   pull_request:
@@ -32,8 +26,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          # CPU-only torch: nothing here touches a GPU and the default wheel
-          # drags ~2 GB of CUDA payload onto the runner for nothing.
+          # CPU-only torch wheel; nothing here needs a GPU.
           pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
       - name: Smoke

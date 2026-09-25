@@ -1,15 +1,15 @@
 """Interactive log-log species-frequency (Zipf) plot of the v8 training pool.
 
-The browser-explorable twin of ``paper/figures/fig2_class_freq.png``. Reads the
-per-species row counts (``paper/figures/v8_class_counts.json``: a descending list
-of ``[binomial, n_rows]``) and plots rank vs count on log-log axes — every point
-is one species you can hover to read its exact image count. Guide lines mark the
-per-species cap (2,000) and the long-tail floor (3 rows).
+Reads per-species row counts (a JSON descending list of ``[binomial, n_rows]``,
+produced by the training pipeline and not included here) and plots rank vs
+count on log-log axes — every point is one species you can hover to read its
+exact image count. Guide lines mark the per-species cap (2,000) and the
+long-tail floor (3 rows).
 
 Plotly.js from the CDN; self-contained, iframe-embeddable.
 
-    python3 scripts/viz_class_freq.py \
-        --counts paper/figures/v8_class_counts.json \
+    python3 viz/viz_class_freq.py \
+        --counts /path/to/v8_class_counts.json \
         --out /path/to/site/assets/plotly/orchidclip_class_freq.html
 """
 

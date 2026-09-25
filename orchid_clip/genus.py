@@ -55,8 +55,8 @@ def genus_rollup(
 def format_genus_lead(rollup: list[tuple[str, float]]) -> str:
     """Render a genus rollup as a single lead line.
 
-    e.g. [("Cattleya", 0.94), ("Guarianthe", 0.04)]
-         -> "Genus: Cattleya (0.94) · Guarianthe (0.04)"
+    e.g. [("Cattleya", 0.85), ("Guarianthe", 0.10)]
+         -> "Genus: Cattleya (0.85) · Guarianthe (0.10)"
     """
     assert rollup, "format_genus_lead called with empty rollup"
     parts = [f"{g} ({c:.2f})" for g, c in rollup]

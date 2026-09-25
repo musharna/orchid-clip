@@ -1,95 +1,53 @@
-<div align="center">
-
-# 🌿 orchid-clip
+# orchid-clip
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![🤗 Model](https://img.shields.io/badge/🤗_Model-orchid--clip--v8-FFD21E)](https://huggingface.co/musharna/orchid-clip-v8)
-[![🤗 Demo](https://img.shields.io/badge/🤗_Demo-orchid--genus--id-FF9D00)](https://huggingface.co/spaces/musharna/orchid-genus-id)
-[![Write-up](https://img.shields.io/badge/write--up-OrchidCLIP-2c5282)](https://musharna.github.io/projects/OrchidCLIP/)
-[![Base: BioCLIP 2](https://img.shields.io/badge/base-BioCLIP_2_ViT--L%2F14-2ca02c)](https://huggingface.co/imageomics/bioclip-2)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+[![Model](https://img.shields.io/badge/🤗_Model-orchid--clip--v8-FFD21E)](https://huggingface.co/musharna/orchid-clip-v8)
+[![Demo](https://img.shields.io/badge/🤗_Demo-orchid--genus--id-FF9D00)](https://huggingface.co/spaces/musharna/orchid-genus-id)
 
-**A long-tail-aware CLIP for fine-grained orchid identification — and an honest map of where fine-grained transfer hits a wall.**
-
-> Genus structure transfers. Within-genus species identity doesn't — six independent attempts, one wall. So instead of guessing a binomial, the live demo serves a **calibrated genus**, and names a species only when the margin earns it.
+`orchid-clip-v8` is [BioCLIP 2](https://huggingface.co/imageomics/bioclip-2) (ViT-L/14) fine-tuned on orchid (Orchidaceae) photographs, with a sampler that up-weights rare species. This repository holds the inference code, the evaluation and calibration scripts, and the figure generators. The weights are on the Hugging Face Hub.
 
 <p align="center">
-  <img src="assets/cover.png" alt="UMAP of 18,601 orchid-clip-v8 species prototypes, colored by WCVP subfamily — the genus-level structure the model learns to separate" width="100%">
+  <img src="assets/cover.png" alt="UMAP of orchid-clip-v8 species prototypes, colored by subfamily" width="100%">
 </p>
 
-</div>
+Orchid image data are highly imbalanced: a few cultivated genera account for most public images, while many species have fewer than 30 labeled images in the public sources used here.
 
-Orchidaceae is one of the largest plant families and one of the most heavily **long-tailed** domains in biological vision: a handful of cultivated genera dominate every public image source, while thousands of tropical-epiphyte species have fewer than 30 labeled images on the entire internet. `orchid-clip-v8` is [BioCLIP 2](https://huggingface.co/imageomics/bioclip-2) (ViT-L/14) fine-tuned to take that tail seriously — and then pushed hard enough to find its limit.
+- Model: [musharna/orchid-clip-v8](https://huggingface.co/musharna/orchid-clip-v8) (MIT), 768-d image and text embeddings
+- Demo: [musharna/orchid-genus-id](https://huggingface.co/spaces/musharna/orchid-genus-id) (upload a photo, get a genus, plus a species when the margin is large enough)
+- Project page: [musharna.github.io/projects/OrchidCLIP](https://musharna.github.io/projects/OrchidCLIP/)
 
-The result is two-sided, and the second half is the interesting one:
+## Training data
 
-1. **It lifts the long tail.** Averaged **per genus**, top-1 climbs from 0.768 (BioCLIP 2) to **0.844** — **+7.6 pp** — and the gains land where they should: the smallest, longest-tailed Pleurothallidinae genera gain **+14 to +28 pp**. Averaged per _image_ the same run reads +3.8 pp, because _Ophrys_ alone is 69% of the holdout and is the genus that gains least (+2.8 pp). On a long-tail claim, the per-image average is the one that hides the tail.
-2. **There's a wall.** Across _six_ independent extension attempts — a second modality, more capacity, sparse-autoencoder interpretability, open-set recognition, generative augmentation, and a model-free classical-CV control — **genus structure transfers and stays decodable while within-genus species identity hits a wall, every time.** A single failed extension is an anecdote; six, each with its own kill-gate, all landing on the same _genus-survives / species-locked_ split, is evidence about the embedding itself.
-
-So the product isn't a species oracle. It's a **calibrated genus card** that abstains from a species call when it hasn't earned one.
-
-## Try it
-
-|                      |                                                                                                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🌿 **Live demo**     | **[musharna/orchid-genus-id](https://huggingface.co/spaces/musharna/orchid-genus-id)** — upload a photo, get a calibrated genus (+ species when confident) |
-| 🤗 **Model**         | **[musharna/orchid-clip-v8](https://huggingface.co/musharna/orchid-clip-v8)** (MIT) — frozen ViT-L/14, 768-d embeddings                                    |
-| 📄 **Full write-up** | **[musharna.github.io/projects/OrchidCLIP](https://musharna.github.io/projects/OrchidCLIP/)** — the whole story, with interactive figures                  |
-
-## How the demo decides
-
-```mermaid
-flowchart LR
-    IMG["📷 orchid photo"]:::in --> ENC["v8 image tower<br/>BioCLIP-2 ViT-L/14"]:::model
-    ENC --> EMB["768-d embedding<br/>L2-normalized"]:::model
-    EMB -->|cosine| TXT["18,858 species<br/>text embeddings"]:::data
-    TXT --> RANK["top-1 / top-2<br/>margin"]:::logic
-    RANK -->|margin ≥ τ| SP["✅ species call"]:::out
-    RANK -->|margin below τ| GN["🌿 genus + candidates<br/>species uncertain"]:::out
-    classDef in fill:#1f2937,stroke:#4b5563,color:#e5e7eb;
-    classDef model fill:#0e7490,stroke:#155e75,color:#ecfeff;
-    classDef data fill:#14532d,stroke:#166534,color:#dcfce7;
-    classDef logic fill:#7c2d12,stroke:#9a3412,color:#ffedd5;
-    classDef out fill:#581c87,stroke:#6b21a8,color:#f3e8ff;
-```
-
-The **top-1/top-2 cosine margin** is the confidence signal. A threshold `τ` calibrated on a leakage-safe holdout holds **shown-species precision at ~90%** while still naming a species on **~60%** of photos; below `τ`, the card abstains to _"Genus X (species uncertain)"_ and lists the candidate species. Genus is a softmax-then-sum-within-genus rollup over the top candidates — the level the model reliably nails.
+The model was trained on 1.14M images across 5,124 species (at least 3 images per species, after WCVP synonym merging and a cosine-similarity quality filter), using an inverse-square-root class-frequency sampler.
 
 ## Results
 
-**Closed-set benchmark** — each image ranked (image→text) against the **547** species present in a 4,000-image holdout. The split is a **hash-partitioned random 2%** (`md5(source_id)`), not stratified or class-balanced: it inherits the domain's own imbalance rather than correcting for it.
+**Closed-set benchmark.** Each holdout image is ranked (image to text) against the 547 species present in the holdout. The holdout is the first 4,000 images of a 2% hash-partitioned bucket (`md5(source_id)`). It is not stratified or class-balanced, so it keeps the imbalance of the source data.
 
-| model              | top-1 (per image) | top-1 (per genus) | top-5     | genus top-1 |
-| ------------------ | ----------------- | ----------------- | --------- | ----------- |
-| BioCLIP 2          | 0.873             | 0.768             | 0.978     | 0.992       |
-| **orchid-clip-v8** | **0.911**         | **0.844**         | **0.986** | **0.991**   |
+| model          | top-1 (per image) | top-1 (per genus) | top-5 | genus top-1 |
+| -------------- | ----------------- | ----------------- | ----- | ----------- |
+| BioCLIP 2      | 0.873             | 0.768             | 0.978 | 0.992       |
+| orchid-clip-v8 | 0.911             | 0.844             | 0.986 | 0.991       |
 
-Both columns come from the same run. Per image the lift is **+3.8 pp**; per genus it is **+7.6 pp**. They differ because _Ophrys_ is 2,754 of the 4,000 images and gains the least (+2.8 pp), so it dominates the per-image mean while counting once out of fourteen in the per-genus one. The per-genus column covers the 14 genera with at least 20 holdout images (3,937 of 4,000); the harness reports per-genus accuracy directly, and the macro average is taken over those values.
+Both columns come from the same run. The per-image gain is +3.8 percentage points (pp), and the per-genus gain is +7.6 pp. The two differ because _Ophrys_ makes up 2,754 of the 4,000 images and gains the least (+2.8 pp), so it dominates the per-image mean but counts once in the per-genus mean. The per-genus column averages over the 14 genera with at least 20 holdout images (3,937 of 4,000 images).
 
-The lift is **not uniform**: three of the fourteen genera regress — _Cymbidium_ −6.0 pp, _Laelia_ −4.2 pp, _Encyclia_ −1.0 pp — all well-sampled genera that BioCLIP 2 already handled well. Genus accuracy is essentially unchanged (0.992 → 0.991), so the gains are real _within-genus_ species gains, not a coarsened boundary.
+The gains are uneven. The largest are in genera with few holdout images (for example _Lepanthes_ +27.5 pp on 40 images, _Stelis_ +24.0 pp on 25 images), so they are estimated on small samples. Three genera get worse: _Cymbidium_ (−6.0 pp), _Laelia_ (−4.2 pp) and _Encyclia_ (−1.0 pp). Genus accuracy is unchanged (0.992 vs 0.991).
 
-**Open-set** — the live demo ranks each photo against **all 18,858** named species, a 34× larger candidate pool. Same cross-modal image→text scoring; the open set is simply harder:
+## How the demo decides
 
-| metric (open-set, the live path)         | value                   |
-| ---------------------------------------- | ----------------------- |
-| genus top-1 (nearest species' genus)     | **~0.94**               |
-| species top-1 (no abstain)               | 0.71                    |
-| shown-species precision **with abstain** | **0.90** @ 60% coverage |
+This repository's `app.py` and `infer.py` are an earlier, text-embedding version of the Space's logic: a photo's embedding is compared by cosine similarity with text embeddings for 18,858 species names. The live Space now ranks against image centroids.
 
-## The wall, in one table
+1. Embed the photo with the v8 image tower (768-d, L2-normalized).
+2. Rank species by cosine similarity.
+3. If the margin between the top-1 and top-2 scores is at least a threshold τ, show the top species. Otherwise show only the genus ("species uncertain") and list the candidates.
 
-Six independent attempts to recover within-genus species identity — different mechanism classes, each with its own kill-gate:
+τ was selected on a calibration set of 7,137 images with `eval/calibrate_genus_abstain.py`, which scores against the text embeddings. On that same set, the chosen τ reaches 0.900 shown-species precision at 0.600 coverage. These are in-sample figures, not a held-out guarantee. The live Space reuses the same τ with image-centroid margins.
 
-| extension lever                                       | genus               | species                      |
-| ----------------------------------------------------- | ------------------- | ---------------------------- |
-| second modality — herbarium scans / text descriptions | 0.81–0.93           | 0.005 → 0.686, then plateaus |
-| more capacity — 2× ViT-H backbone, clade MoE          | —                   | no lever found               |
-| interpretability — sparse autoencoder over features   | partial             | 0 of 13 morphology axes      |
-| open-set recognition — reject never-seen species      | holds               | novel-rejection 0.155        |
-| generative augmentation — synthesize tail species     | —                   | no lift past 2–3 real photos |
-| model-free control — classical CV, no v8              | (within-photo only) | cross-modal corr ≈ 0         |
-
-It generalizes: this is the fine-grained-taxonomy face of the **modality gap** contrastive image–text models are known to exhibit, and no published herbarium-to-field plant system reports clean within-genus species transfer either. Full account in the [write-up](https://musharna.github.io/projects/OrchidCLIP/#can-the-species-gap-be-closed-six-attempts-one-wall).
+| metric (text-embedding path, 18,858 candidate species)       | value                |
+| ------------------------------------------------------------ | -------------------- |
+| species top-1, no abstain (calibration set, n = 7,137)       | 0.71                 |
+| shown-species precision with abstain (same set, in-sample)   | 0.90 at 60% coverage |
+| genus top-1 on species not seen in training (n = 187 images) | 0.48                 |
 
 ## Use it as an embedding
 
@@ -120,31 +78,31 @@ with torch.no_grad():
 feat = feat / feat.norm(dim=-1, keepdim=True)  # 768-d, L2-normalized
 ```
 
-That 768-d feature is a foundation embedding — cosine-rank it against species text or image centroids for ID, or use it directly for retrieval and downstream heads (bloom-stage, disease, mounting-style). The model was trained on a **1.14M-image pool across 5,124 species** (≥3 images/species, after WCVP synonym dedup + a cosine quality filter), with an inverse-square-root long-tail sampler.
+The feature can be ranked against species text embeddings or image centroids, or used for retrieval.
 
-## What's in here
+## Repository contents
 
-| path                         | what                                                                                                                                                                             |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`orchid_clip/`**           | inference package — unified embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                                                     |
-| **`infer.py`**, **`app.py`** | the genus-ID card scoring core + its Gradio UI (the live Space)                                                                                                                  |
-| **`eval/`**                  | the eval harness — `eval_bioclip_vs_orchid_clip.py` (headline / per-genus), `audit_v7_confusions.py` (confusion structure), `calibrate_genus_abstain.py` (the abstain threshold) |
-| **`viz/`**                   | the four Plotly generators behind the write-up's interactive figures (risk–coverage, per-genus Δ, class-frequency, prototype UMAP)                                               |
+| path                 | contents                                                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchid_clip/`       | inference package: embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                               |
+| `infer.py`, `app.py` | scoring core and Gradio UI for the earlier text-embedding version of the demo                                                                     |
+| `eval/`              | `eval_bioclip_vs_orchid_clip.py` (closed-set and per-genus results), `audit_v7_confusions.py` (confusion pairs), `calibrate_genus_abstain.py` (τ) |
+| `viz/`               | Plotly scripts for the project-page figures (risk-coverage, per-genus change, class frequency, prototype UMAP)                                    |
 
-> The `eval/` scripts and `app.py` read an upstream image catalog / shipped embedding assets that aren't distributed here — they document methodology and power the live Space, not a turnkey local reproduction. The model itself is fully self-contained on [🤗 Hub](https://huggingface.co/musharna/orchid-clip-v8).
+The `eval/` scripts and `app.py` need an image catalog and embedding assets (`assets/v8_text_embeddings.npz`, `genus_abstain.json`, `taxonomy.json`). These come from the training pipeline, which is not included here, so the scripts show the method but cannot be run end to end from this repository alone. The model weights on the Hub can be used without them.
 
 ## Limitations
 
-Every accuracy here is on an **iNaturalist-dominated** holdout, and v8 inherits that distribution. On other in-situ photo sources it degrades only mildly (−0.10 to −0.11 top-1), but on **botanically-curated archives** heavy with herbarium specimens and illustrations (IOSPE, POWO) it **collapses** — top-1 falls to 0.14–0.19, and even _genus_ drops to ~0.55. The within-genus species ceiling is a property of field _photographs_; herbarium and illustration imagery is a separate, larger modality gap. **Deploy on field photos, not scanned plates.**
-
-This is a research artifact, not a substitute for vouchered taxonomy — cryptic sister species (e.g. _Cattleya labiata_ / _trianae_ / _warneri_) are genuinely conflatable. The abstain is the point, not a bug.
+- All results above are on an iNaturalist-dominated holdout. On other field-photo sources, top-1 drops by 0.10 to 0.11. On herbarium specimens and botanical illustrations (IOSPE, POWO), top-1 falls to 0.14 to 0.19 and genus accuracy to about 0.55. Use the model on field photographs.
+- Within-genus species identification is the weak point. Several attempts to improve within-genus species accuracy on the model side did not help; adding photos for rare species did.
+- Some sister species (e.g. _Cattleya labiata_ / _trianae_ / _warneri_) are hard to tell apart from photographs. This is a research tool, not a substitute for expert or vouchered identification.
 
 ## Citation
 
 ```bibtex
 @software{orchid_clip_2026,
-  author = {Arnold, M.},
-  title  = {orchid-clip: a long-tail-aware CLIP for fine-grained orchid identification},
+  author = {Arnold, Jaret},
+  title  = {orchid-clip: a BioCLIP 2 fine-tune for orchid identification},
   year   = {2026},
   url    = {https://github.com/musharna/orchid-clip},
   note   = {Model: huggingface.co/musharna/orchid-clip-v8}
@@ -153,4 +111,4 @@ This is a research artifact, not a substitute for vouchered taxonomy — cryptic
 
 ## License
 
-MIT — code and model. Built on [BioCLIP 2](https://huggingface.co/imageomics/bioclip-2) (Imageomics).
+MIT, for code and model. Built on [BioCLIP 2](https://huggingface.co/imageomics/bioclip-2) (Imageomics).

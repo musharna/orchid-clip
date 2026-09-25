@@ -1,18 +1,23 @@
-"""HF Space: Orchid genus identification with a calibrated species abstain.
+"""Gradio demo: orchid genus identification with a species abstain.
+
+An earlier, text-embedding version of the Space's logic; the live Space now
+ranks against image centroids.
 
 Thin gradio shell over ``infer.py``. Upload an orchid photo -> orchid-clip-v8
 image embedding -> cosine vs the 18,858 v8 species text embeddings -> top-k
-species, gated by a calibrated genus-abstain (show a species only when the
-top1-top2 cosine margin clears tau; else "Genus X (species uncertain)").
+species, gated by a genus-abstain (show a species only when the top1-top2
+cosine margin clears tau; else "Genus X (species uncertain)"). tau was chosen
+on a 7,137-image calibration set; its 0.90 precision at 0.60 coverage was
+measured on that same set, so it is an in-sample figure.
 
-Self-contained: the v8 image tower is pulled from the public model
-``musharna/orchid-clip-v8`` whose checkpoint sha256 (81ae2b09...) is identical
-to the checkpoint the shipped text embeddings were built from, so the live
-margin signal IS the signal the abstain threshold was calibrated on.
+The v8 image tower is pulled from the public model ``musharna/orchid-clip-v8``,
+whose checkpoint sha256 (81ae2b09...) matches the checkpoint the text
+embeddings were built from.
 
 Run locally:
-    bash build_assets.sh        # populate assets/ from the upstream training repo
-    ORCHID_CLIP_CHECKPOINT=/path/to/orchid_clip_v8/epoch_5 python app.py
+    # assets/ (v8_text_embeddings.npz, genus_abstain.json, taxonomy.json)
+    # come from the training pipeline, which is not included in this repo.
+    ORCHID_CLIP_CHECKPOINT=/path/to/checkpoint_dir python app.py
 
 Set ORCHID_SPACE_LAZY=1 to skip the eager model load at import (for tests).
 """
@@ -41,19 +46,19 @@ DESCRIPTION = (
     "Upload an orchid photo. The model ([orchid-clip-v8]"
     "(https://huggingface.co/musharna/orchid-clip-v8), a BioCLIP-2 ViT-L/14 "
     "fine-tune) embeds it and ranks it against **18,858 orchid species**. "
-    "Genus is the level it reliably nails (genus top-1 ≈ 0.94 on this cross-modal "
-    "image↔text path); species within a "
-    "genus is genuinely hard. So a **calibrated abstain** shows a species only "
-    "when it is confident — otherwise it gives you the genus and lists the "
-    "species candidates as possibilities. The abstain holds shown-species "
-    "precision at ~90% while still naming a species on ~60% of photos."
+    "Genus is more reliable than species, but not guaranteed: on species not "
+    "seen in training, genus top-1 is 0.48 (n = 187 images). A species is "
+    "shown only when the top-1/top-2 score margin clears a threshold; "
+    "otherwise you get the genus and a list of candidate species. On the "
+    "7,137-image set used to choose the threshold, shown species were correct "
+    "90% of the time and a species was named for 60% of photos (in-sample)."
 )
 
 if not (ASSETS / "v8_text_embeddings.npz").exists():
     raise SystemExit(
-        f"assets missing under {ASSETS}; run `bash build_assets.sh` first "
-        "(copies v8_text_embeddings.npz + genus_abstain.json + taxonomy.json "
-        "from the upstream training repo)."
+        f"assets missing under {ASSETS}: this needs v8_text_embeddings.npz, "
+        "genus_abstain.json and taxonomy.json, which come from the training "
+        "pipeline (not included in this repo)."
     )
 
 TEXT_EMB, BINOMIALS, ABSTAIN, TAX = load_assets(ASSETS)
@@ -117,12 +122,10 @@ with gr.Blocks(title="Orchid Genus ID") as demo:
 
     gr.Markdown(
         "---\n"
-        "**Why abstain?** Across six independent extension attempts, genus "
-        "structure in this embedding transfers and stays decodable while "
-        "within-genus *species* identity hits a wall. Rather than emit a "
-        "confident wrong binomial, this card serves the granularity the model "
-        "actually earns. See the "
-        "[write-up](https://musharna.github.io/projects/OrchidCLIP/)."
+        "**Why abstain?** Within-genus species identification is the model's "
+        "weak point, so the card names a species only when the margin is large "
+        "and otherwise reports the genus. See the "
+        "[project page](https://musharna.github.io/projects/OrchidCLIP/)."
     )
 
 if __name__ == "__main__":

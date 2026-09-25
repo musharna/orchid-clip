@@ -14,9 +14,9 @@ min_images_per_species at val time — we want the long tail too.
 
 Run on a CUDA host (v8 / open_clip):
     python \\
-        scripts/eval_bioclip_vs_orchid_clip.py \\
+        eval/eval_bioclip_vs_orchid_clip.py \\
         --orchid-clip ./orchid-clip-v8 \\
-        --bioclip ~/bioclip2/open_clip_pytorch_model.bin \\
+        --bioclip ./bioclip-2/open_clip_pytorch_model.bin \\
         --db ./orchid_images.db \\
         --image-root ./images \\
         --max-val 4000 \\
@@ -74,9 +74,9 @@ def load_val_rows(
 ) -> list[dict]:
     """Load rows whose hash bucket lies in [bucket_lo, val_fraction).
 
-    Default (bucket_lo=0.0, val_fraction=0.02) reproduces the §5.1 holdout.
-    To score a held-back slice disjoint from §5.1 (e.g. for v13 P_conf
-    construction), set bucket_lo=0.02, val_fraction=0.04.
+    Default (bucket_lo=0.0, val_fraction=0.02) reproduces the README holdout.
+    To score a held-back slice disjoint from it, set bucket_lo=0.02,
+    val_fraction=0.04.
     """
     conn = sqlite3.connect(db)
     conn.row_factory = sqlite3.Row

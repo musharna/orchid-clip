@@ -6,13 +6,14 @@ from the shipped calibration artifact ``orchid_clip_fusion/genus_abstain.json``
 byte-faithful to the deployed threshold. Every point is one tau on the sweep;
 hover reads off (margin tau, coverage, shown-species precision).
 
-The marked operating point is the live card's setting: margin tau = 0.0149 →
-shown-species precision 0.90 at 60% coverage. The right end of the curve
+The marked operating point is the chosen threshold: margin tau = 0.0149 →
+shown-species precision 0.90 at 60% coverage, measured on the same 7,137-image
+calibration set tau was selected on (in-sample). The right end of the curve
 (coverage = 1.0) is the no-abstain baseline (precision 0.71).
 
 Plotly.js from the CDN; self-contained, iframe-embeddable HTML.
 
-    python3 scripts/viz_risk_coverage.py \
+    python3 viz/viz_risk_coverage.py \
         --abstain orchid_clip_fusion/genus_abstain.json \
         --out /path/to/site/assets/plotly/orchidclip_risk_coverage.html
 """

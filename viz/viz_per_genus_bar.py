@@ -1,12 +1,12 @@
 """Interactive per-genus top-1 bar chart — orchid-clip-v8 vs BioCLIP 2.
 
-The browser-explorable twin of ``paper/figures/fig1_per_genus.png``. Same numbers
-(``~/orchid_clip_v8/eval_v8_vs_v7.json``, n=4000, native eval), kept
-in sync with ``paper/figures/render_fig1_per_genus.py`` (ROWS below mirror it).
+Numbers are hard-coded in ROWS below, copied from the output of
+``eval/eval_bioclip_vs_orchid_clip.py`` on the 4,000-image holdout (not
+included in this repo).
 Grouped horizontal bars sorted by long-tail delta; hover reads off n, both
 accuracies, and Δ. Plotly.js from the CDN; self-contained, iframe-embeddable.
 
-    python3 scripts/viz_per_genus_bar.py \
+    python3 viz/viz_per_genus_bar.py \
         --out /path/to/site/assets/plotly/orchidclip_per_genus.html
 """
 
@@ -15,8 +15,7 @@ from __future__ import annotations
 import argparse
 import os
 
-# (genus, n, v8_top1, bioclip2_top1) — mirrors render_fig1_per_genus.py ROWS,
-# sourced from eval_v8_vs_v7.json (n=4000, 547 species, native eval pipeline).
+# (genus, n, v8_top1, bioclip2_top1) from the 4,000-image, 547-species holdout.
 ROWS = [
     ("Lepanthes", 40, 0.800, 0.525),
     ("Stelis", 25, 0.640, 0.400),
