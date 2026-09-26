@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use orchid-clip in your work, please cite it as below."
+title: "orchid-clip: a BioCLIP 2 fine-tune for orchid identification"
+abstract: >-
+  Inference, evaluation and calibration code and figure generators for
+  orchid-clip-v8, BioCLIP 2 (ViT-L/14) fine-tuned on orchid (Orchidaceae)
+  photographs with a sampler that up-weights rare species. The weights are on
+  the Hugging Face Hub.
+type: software
+authors:
+  - family-names: Arnold
+    given-names: Jaret
+    orcid: "https://orcid.org/0009-0003-4055-5238"
+repository-code: "https://github.com/musharna/orchid-clip"
+url: "https://huggingface.co/musharna/orchid-clip-v8"
+license: MIT
+keywords:
+  - orchids
+  - Orchidaceae
+  - plant-identification
+  - computer-vision
+  - clip
+  - bioclip
