@@ -35,13 +35,9 @@ The gains are uneven. The largest are in genera with few holdout images (for exa
 
 ## How the demo decides
 
-This repository's `app.py` and `infer.py` are an earlier, text-embedding version of the Space's logic: a photo's embedding is compared by cosine similarity with text embeddings for 18,858 species names. The live Space now ranks against image centroids.
+The Space ranks species by cosine similarity between the photo's embedding and each species' image centroid. If the top two scores differ by at least a threshold τ, it shows the top species; otherwise it shows only the genus and lists the candidates. (`app.py` and `infer.py` here are an earlier version that ranks against text embeddings of 18,858 species names.)
 
-1. Embed the photo with the v8 image tower (768-d, L2-normalized).
-2. Rank species by cosine similarity.
-3. If the margin between the top-1 and top-2 scores is at least a threshold τ, show the top species. Otherwise show only the genus ("species uncertain") and list the candidates.
-
-τ was selected on a calibration set of 7,137 images with `eval/calibrate_genus_abstain.py`, which scores against the text embeddings. On that same set, the chosen τ reaches 0.900 shown-species precision at 0.600 coverage. These are in-sample figures, not a held-out guarantee. The live Space reuses the same τ with image-centroid margins.
+τ was chosen with `eval/calibrate_genus_abstain.py` on 7,137 calibration images, scored against the text embeddings. The figures below are from that same set, so they are in-sample.
 
 | metric (text-embedding path, 18,858 candidate species)       | value                |
 | ------------------------------------------------------------ | -------------------- |
