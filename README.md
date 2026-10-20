@@ -37,14 +37,14 @@ The gains are uneven. The largest are in genera with few holdout images (for exa
 
 The Space ranks species by cosine similarity between the photo's embedding and each species' image centroid. If the top two scores differ by at least a threshold τ, it shows the top species; otherwise it shows only the genus and lists the candidates. (`app.py` and `infer.py` here are an earlier version that ranks against text embeddings of 18,858 species names.)
 
-The deployed τ = 0.0173 was chosen with `eval/calibrate_genus_abstain.py` on 8,837 photos of 3,391 species held out of training and of the centroids, ranked against all 25,268 species image centroids. τ was tuned and scored on the same photos, so the precision and coverage figures are in-sample.
+The deployed τ = 0.0171 was chosen with `eval/calibrate_genus_abstain.py` on 8,837 photos of 3,391 species held out of training and of the centroids, ranked against all 25,083 species image centroids. τ was tuned and scored on the same photos, so the precision and coverage figures are in-sample.
 
-| metric (image-centroid path, 25,268 candidate species) | value                |
+| metric (image-centroid path, 25,083 candidate species) | value                |
 | ------------------------------------------------------ | -------------------- |
 | species top-1, no abstain (held-out, n = 8,837)        | 0.69                 |
 | genus top-1 (same set)                                 | 0.92                 |
 | shown-species precision with abstain (in-sample)       | 0.90 at 55% coverage |
-| genus top-1 on species with no centroid (n = 243)      | 0.56                 |
+| genus top-1 on species with no centroid (n = 243)      | 0.55                 |
 
 Before 2026-10-20 the demo's gallery left out about 5,200 species in the tribes Vandeae and Cymbidieae (_Phalaenopsis_, _Vanda_, _Oncidium_, _Cymbidium_ and relatives): the centroid build filtered by subfamily and omitted the legacy name Vandoideae. Adding them raised held-out genus top-1 from 0.80 to 0.92.
 
