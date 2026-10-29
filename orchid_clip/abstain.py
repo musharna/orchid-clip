@@ -21,6 +21,13 @@ _DEFAULT_CONFIG = os.path.join(
     os.path.dirname(__file__), "..", "orchid_clip_fusion", "genus_abstain.json"
 )
 
+# Softmax temperature for the genus rollup over the candidate cosines. At 1.0 the
+# softmax is near-uniform over cosines that differ by hundredths, so the rollup
+# was a vote by candidate count. 0.02 was chosen on the 8,837-photo seen-species
+# holdout (top 8 vs the 25,083-centroid gallery): genus top-1 0.875 -> 0.922, ECE
+# 0.084 -> 0.029; on 243 unseen-species photos +1.7 pt [-0.4, +3.3].
+ROLLUP_TEMPERATURE = 0.02
+
 
 @dataclass(frozen=True)
 class AbstainConfig:
@@ -65,7 +72,7 @@ def decide(candidate_ids, scores, cfg: AbstainConfig) -> AbstainDecision:
     ids_desc = [candidate_ids[i] for i in order]
     scores_desc = [scores[i] for i in order]
 
-    rollup = genus_rollup(candidate_ids, scores)
+    rollup = genus_rollup(candidate_ids, scores, temperature=ROLLUP_TEMPERATURE)
 
     if not cfg.enabled:
         # Disabled = pure pass-through (current behavior); never interfere or raise on
