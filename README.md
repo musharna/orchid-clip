@@ -20,6 +20,8 @@ Orchid image data are highly imbalanced: a few cultivated genera account for mos
 
 The model was trained on 1.14M images across 5,124 species (at least 3 images per species, after WCVP synonym merging and a cosine-similarity quality filter), using an inverse-square-root class-frequency sampler.
 
+The photos come from iNaturalist (research-grade), OrchidRoots, Tree of Life / EOL, IOSPE, Kew POWO, the Atlas of Living Australia, Flickr, Wikimedia Commons and the Smithsonian. They are not included in this repository or redistributed, and each keeps its owner's license: roughly 70% CC BY-NC, 13% CC BY or BY-SA, 8% all rights reserved, 8% with no stated license and 2% CC0 (measured on the 1.48M-photo candidate pool before quality filtering). The MIT license below covers the code and weights only. Photographers or site owners who want their photos left out of future training can [open an issue](https://github.com/musharna/orchid-clip/issues).
+
 ## Results
 
 **Closed-set benchmark.** Each holdout image is ranked (image to text) against the 547 species present in the holdout. The holdout is the first 4,000 images of a 2% hash-partitioned bucket (`md5(source_id)`). It is not stratified or class-balanced, so it keeps the imbalance of the source data.
