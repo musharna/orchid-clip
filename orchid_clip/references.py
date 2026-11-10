@@ -3,9 +3,10 @@
 The demo scores a photo against one image centroid per species. Two files add to
 that, and this module builds, loads and scores with both:
 
-- ``form_refs.npz``: a second centroid for species with a known color form (for
-  example white flowers in a species that is normally purple). The better of the
-  two centroids counts.
+- ``form_refs.npz``: extra centroids, for species with a known color form (for
+  example white flowers in a species that is normally purple) and for photos of a
+  species that show no flower (leaves, buds, seed pods). The best of a species'
+  centroids counts.
 - ``photo_rows.npz``: every reference photo's embedding, reduced by PCA and stored
   as 8-bit integers. A species' score becomes the mean of its centroid score and
   the cosine to its single closest photo.
@@ -46,10 +47,11 @@ def tower_centroid(rows: np.ndarray, tower_dims: list[int]) -> np.ndarray:
 def build_form_refs(
     rows: np.ndarray, members: dict[str, list[int]], tower_dims: list[int]
 ) -> dict[str, np.ndarray]:
-    """One form centroid per species from the listed row indices.
+    """One extra centroid per species from the listed row indices.
 
-    ``members`` maps a species name to the indices (into ``rows``) of its photos of
-    the color form. Species with fewer than two photos are skipped.
+    ``members`` maps a species name to the indices (into ``rows``) of the photos
+    to average: its photos of a color form, or its photos that show no flower.
+    Species with fewer than two photos are skipped.
     """
     names = sorted(b for b, ix in members.items() if len(ix) >= 2)
     if not names:
@@ -106,6 +108,83 @@ def build_photo_rows(
         "species_index": sp.astype(np.int32),
         "order": order,
         "n_species": np.int64(n_species),
+    }
+
+
+def append_photo_rows(
+    base: dict[str, np.ndarray], rows: np.ndarray, species_index: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Add reference photos to an existing photo-row file without changing it.
+
+    ``base`` holds the arrays of a file from :func:`build_photo_rows`. The new
+    ``rows`` [N, D] are projected with that file's projection and stored with its
+    scale, then merged in so rows stay grouped by species (a species' old rows
+    first). Old rows keep their bytes, so scores against them do not change.
+
+    ``kept_energy`` in the result is the mean share of a new row's squared length
+    that the projection keeps. If it is well below the share for the rows the
+    projection was fit on, the projection does not suit the new photos: rebuild
+    the file from all rows instead.
+
+    Rows given as float64 are projected in float64, which is how the demo's file
+    was made; float32 rows give the same integers except about 2 values in
+    100,000, which differ by one unit.
+    """
+    rows = np.asarray(rows)
+    if rows.dtype != np.float64:
+        rows = rows.astype(np.float32)
+    sp_new = np.asarray(species_index, np.int64)
+    proj = np.asarray(base["proj"], np.float32)
+    scale = np.asarray(base["scale"], np.float32)
+    n_species = int(base["n_species"])
+    if rows.ndim != 2 or rows.shape[0] != sp_new.shape[0] or rows.shape[0] == 0:
+        raise ValueError("rows / species_index size mismatch, or no rows")
+    if rows.shape[1] != proj.shape[0]:
+        raise ValueError(
+            f"rows have {rows.shape[1]} dimensions, the file's projection "
+            f"takes {proj.shape[0]}"
+        )
+    if sp_new.min() < 0 or sp_new.max() >= n_species:
+        raise ValueError("species_index outside the species list")
+    projected = rows @ proj
+    kept = (projected * projected).sum(1) / ((rows * rows).sum(1) + 1e-12)
+    low = _norm(projected).astype(np.float32)
+    quant = np.clip(np.rint(low / scale * 127), -127, 127).astype(np.int8)
+    n_old = len(base["rows"])
+    sp_all = np.r_[np.asarray(base["species_index"], np.int64), sp_new]
+    order = np.argsort(sp_all, kind="stable")
+    return {
+        "rows": np.concatenate([np.asarray(base["rows"], np.int8), quant])[order],
+        "scale": scale,
+        "proj": proj,
+        "species_index": sp_all[order].astype(np.int32),
+        "n_species": np.int64(n_species),
+        "is_new": (np.arange(len(sp_all)) >= n_old)[order],
+        "kept_energy": np.float32(kept.mean()),
+    }
+
+
+def concat_form_refs(
+    base: dict[str, np.ndarray], extra: dict[str, np.ndarray]
+) -> dict[str, np.ndarray]:
+    """Join two sets of extra centroids (from :func:`build_form_refs`).
+
+    A species may be in both, for example with a color-form centroid and a
+    non-flower centroid; scoring takes the best of a species' centroids.
+    """
+    a = np.asarray(base["centroids"], np.float32)
+    b = np.asarray(extra["centroids"], np.float32)
+    if a.ndim != 2 or b.ndim != 2 or a.shape[1] != b.shape[1]:
+        raise ValueError(f"centroid dimensions differ: {a.shape} vs {b.shape}")
+    return {
+        "binomials": np.r_[
+            np.asarray(base["binomials"], str), np.asarray(extra["binomials"], str)
+        ],
+        "centroids": np.concatenate([a, b]),
+        "n_rows_used": np.r_[
+            np.asarray(base["n_rows_used"], np.int64),
+            np.asarray(extra["n_rows_used"], np.int64),
+        ],
     }
 
 
@@ -174,8 +253,8 @@ def species_sims(
 ) -> np.ndarray:
     """Score of one query embedding for every species.
 
-    Centroid score: cosine to the species' centroid, or to its form centroid if
-    that is closer. With photo-level references the score is the mean of the
+    Centroid score: cosine to the species' centroid, or to one of its extra
+    centroids if that is closer. With photo-level references the score is the mean of the
     centroid score and the cosine to the species' closest reference photo; a
     species with no photos in the file keeps its centroid score.
     """

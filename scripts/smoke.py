@@ -109,6 +109,68 @@ def check_references() -> None:
         )
         assert np.isclose(some[4], plain[4]) and np.isclose(some[0], with_rows[0])
 
+        # photos added later: species 2 gets a second look that leans toward
+        # species 3. The old rows keep their bytes and the new look is found.
+        lean = 0.65 * axes[2] + 0.76 * axes[3]
+        new_rows = np.stack([lean + 0.02 * rng.normal(size=d) for _ in range(per)])
+        new_rows = (new_rows / np.linalg.norm(new_rows, axis=1, keepdims=True)).astype(
+            np.float32
+        )
+        query2 = (lean / np.linalg.norm(lean)).astype(np.float32)
+        before = R.species_sims(gallery, query2, rows=photo)
+        assert int(before.argmax()) == 3, "setup: species 3 should win before adding"
+        more = R.append_photo_rows(built, new_rows, np.full(per, 2))
+        is_new = more.pop("is_new")
+        assert float(more.pop("kept_energy")) > 0.9, "projection should fit these rows"
+        assert is_new.sum() == per and (more["species_index"][is_new] == 2).all()
+        assert np.array_equal(more["rows"][~is_new], built["rows"]), "old rows changed"
+        assert np.array_equal(more["species_index"][~is_new], built["species_index"])
+        np.savez(tmp / "more.npz", ckpt_sha256_prefix="abc", **more)
+        after = R.species_sims(
+            gallery, query2, rows=R.load_photo_rows(tmp / "more.npz", names, "abc")
+        )
+        assert int(after.argmax()) == 2, "added reference photos did not engage"
+        assert np.allclose(np.delete(after, 2), np.delete(before, 2), atol=1e-6)
+        wide = R.append_photo_rows(built, new_rows.astype(np.float64), np.full(per, 2))
+        step = np.abs(wide["rows"].astype(int) - more["rows"].astype(int))
+        assert step.max() <= 1 and (step > 0).mean() < 0.01, "float64 rows differ"
+        # a look outside what the projection was fit on is flagged, not hidden
+        odd = np.tile(axes[n_sp + 2], (per, 1)).astype(np.float32)
+        assert (
+            float(R.append_photo_rows(built, odd, np.full(per, 2))["kept_energy"]) < 0.5
+        )
+        for label, said, args in [
+            ("rows of another size", "dimensions", (new_rows[:, :-1], np.full(per, 2))),
+            ("a species outside the list", "outside", (new_rows, np.full(per, n_sp))),
+            ("no rows", "no rows", (new_rows[:0], np.zeros(0, np.int64))),
+        ]:
+            try:
+                R.append_photo_rows(built, *args)
+            except ValueError as err:
+                assert said in str(err), f"{label}: unclear error {err!r}"
+                continue
+            raise AssertionError(f"append_photo_rows accepted {label}")
+
+        # a species can hold two extra centroids; the closer one counts
+        second = list(range(per // 2, per))
+        both = R.concat_form_refs(
+            forms, R.build_form_refs(rows, {names[0]: second}, dims)
+        )
+        np.savez(tmp / "both.npz", ckpt_sha256_prefix="abc", **both)
+        query_b = (look_b / np.linalg.norm(look_b)).astype(np.float32)
+        one = R.species_sims(gallery, query_b, forms=form)
+        two = R.species_sims(
+            gallery, query_b, forms=R.load_form_refs(tmp / "both.npz", names, "abc")
+        )
+        assert two[0] > one[0] + 0.1, "second extra centroid did not engage"
+        assert np.allclose(np.delete(two, 0), np.delete(one, 0))
+        assert np.isclose(
+            R.species_sims(gallery, query, forms=form)[0],
+            R.species_sims(
+                gallery, query, forms=R.load_form_refs(tmp / "both.npz", names, "abc")
+            )[0],
+        ), "first extra centroid lost when a second was added"
+
         # stale files must fail loudly, and the good file above must not
         bad_order = dict(built, species_index=built["species_index"][::-1].copy())
         np.savez(tmp / "bad_order.npz", ckpt_sha256_prefix="abc", **bad_order)
