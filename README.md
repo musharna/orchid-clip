@@ -37,16 +37,26 @@ The gains are uneven. The largest are in genera with few holdout images (for exa
 
 ## How the demo decides
 
-The Space ranks species by cosine similarity between the photo's embedding and each species' image centroid. If the top two scores differ by at least a threshold τ, it shows the top species; otherwise it shows only the genus and lists the candidates. (`app.py` and `infer.py` here are an earlier version that ranks against text embeddings of 18,858 species names.)
+The Space embeds a photo with two models, orchid-clip-v8 and [orchid-clip-v9cw05](https://huggingface.co/musharna/orchid-clip-v9cw05), and averages their scores. It scores each of 25,342 species against three kinds of reference:
 
-The deployed τ = 0.0171 was chosen with `eval/calibrate_genus_abstain.py` on 8,837 photos of 3,391 species held out of training and of the centroids, ranked against all 25,083 species image centroids. τ was tuned and scored on the same photos, so the precision and coverage figures are in-sample.
+- an image centroid, the average of up to 256 of the species' reference photos;
+- for 105 species with a known color form, a second centroid built from photos of that form (the closer of the two centroids counts);
+- the species' closest single reference photo, out of 435,962 kept in compressed form.
 
-| metric (image-centroid path, 25,083 candidate species) | value                |
-| ------------------------------------------------------ | -------------------- |
-| species top-1, no abstain (held-out, n = 8,837)        | 0.69                 |
-| genus top-1 (same set)                                 | 0.92                 |
-| shown-species precision with abstain (in-sample)       | 0.90 at 55% coverage |
-| genus top-1 on species with no centroid (n = 243)      | 0.55                 |
+A species' score is the mean of its centroid score and its closest-photo score. If the top two species differ by at least a threshold τ, the Space shows the top species; otherwise it shows only the genus and lists the candidates.
+
+`orchid_clip/references.py` holds this scoring and the loaders for the two extra files; `scripts/build_photo_rows.py` and `scripts/build_form_refs.py` build them. Both files must be rebuilt whenever the centroids are. The loaders refuse a file built for another checkpoint or species list, so a stale file stops the demo at startup. (`app.py` and `infer.py` here are an earlier version that ranks against text embeddings of 18,858 species names.)
+
+The deployed τ = 0.0124 was chosen with `risk_coverage_curve` and `select_tau` in `eval/calibrate_genus_abstain.py`, on 5,050 photos of 2,494 species held out of training and of the references. Of the 8,837 held-out photos, 3,773 share an iNaturalist observation with a reference photo and were left out, because a near-copy among the references makes them score too high. Another 14 are of species the demo has no entry for. τ was tuned and scored on the same photos, so the precision and coverage figures are in-sample.
+
+| metric (25,342 candidate species)                 | value                |
+| ------------------------------------------------- | -------------------- |
+| species top-1, no abstain (held-out, n = 5,050)   | 0.78                 |
+| genus top-1 (same set)                            | 0.93                 |
+| shown-species precision with abstain (in-sample)  | 0.90 at 72% coverage |
+| genus top-1 on species with no centroid (n = 243) | 0.66                 |
+
+On 1,885 iNaturalist photos posted from October 31 to November 10, 2026, scored once after the method and τ were fixed, species top-1 was 0.82, and shown species were right 93% of the time at 73% coverage.
 
 Before 2026-10-20 the demo's gallery left out about 5,200 species in the tribes Vandeae and Cymbidieae (_Phalaenopsis_, _Vanda_, _Oncidium_, _Cymbidium_ and relatives): the centroid build filtered by subfamily and omitted the legacy name Vandoideae. Adding them raised held-out genus top-1 from 0.80 to 0.92.
 
@@ -83,12 +93,14 @@ The feature can be ranked against species text embeddings or image centroids, or
 
 ## Repository contents
 
-| path                 | contents                                                                                                                                           |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `orchid_clip/`       | inference package: embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                               |
-| `infer.py`, `app.py` | scoring core and Gradio UI for the earlier text-embedding version of the demo                                                                     |
-| `eval/`              | `eval_bioclip_vs_orchid_clip.py` (closed-set and per-genus results), `audit_v7_confusions.py` (confusion pairs), `calibrate_genus_abstain.py` (τ) |
-| `viz/`               | Plotly scripts for the project-page figures (risk-coverage, per-genus change, class frequency, prototype UMAP)                                    |
+| path                        | contents                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchid_clip/`              | inference package: embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                               |
+| `infer.py`, `app.py`        | scoring core and Gradio UI for the earlier text-embedding version of the demo                                                                     |
+| `orchid_clip/references.py` | the live demo's extra references: color-form centroids and photo-level scoring (build, load, score)                                               |
+| `scripts/`                  | `build_photo_rows.py` and `build_form_refs.py` (build the two reference files), `smoke.py` (CI check, with a round trip of the reference code)    |
+| `eval/`                     | `eval_bioclip_vs_orchid_clip.py` (closed-set and per-genus results), `audit_v7_confusions.py` (confusion pairs), `calibrate_genus_abstain.py` (τ) |
+| `viz/`                      | Plotly scripts for the project-page figures (risk-coverage, per-genus change, class frequency, prototype UMAP)                                    |
 
 The `eval/` scripts and `app.py` need an image catalog and embedding assets (`assets/v8_text_embeddings.npz`, `genus_abstain.json`, `taxonomy.json`). These come from the training pipeline, which is not included here, so the scripts show the method but cannot be run end to end from this repository alone. The model weights on the Hub can be used without them.
 
