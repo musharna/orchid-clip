@@ -248,6 +248,30 @@ def load_photo_rows(
     return rows, np.asarray(z["proj"], np.float32), present, start
 
 
+def genus_ids(binomials: list[str]) -> np.ndarray:
+    """Integer genus id of every species (the first word of the binomial)."""
+    index: dict[str, int] = {}
+    return np.array(
+        [index.setdefault(str(b).split()[0], len(index)) for b in binomials], np.int64
+    )
+
+
+def other_genus_lead(sims: np.ndarray, genus_idx: np.ndarray) -> float:
+    """Top species' score minus the best score of a species in any other genus.
+
+    Measured over the whole gallery, for the abstain's second condition
+    (``AbstainConfig.other_genus_lead``). ``inf`` when every species shares one genus.
+    """
+    sims = np.asarray(sims)
+    if sims.shape != genus_idx.shape:
+        raise ValueError(f"sims {sims.shape} and genus_idx {genus_idx.shape} differ")
+    top = int(np.argmax(sims))
+    other = sims[genus_idx != genus_idx[top]]
+    if other.size == 0:
+        return float("inf")
+    return float(sims[top] - other.max())
+
+
 def species_sims(
     gallery_emb: np.ndarray, query_emb: np.ndarray, forms=None, rows=None
 ) -> np.ndarray:

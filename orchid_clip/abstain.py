@@ -35,6 +35,11 @@ class AbstainConfig:
     tau: float
     target_precision: float
     enabled: bool = True
+    # Second condition for naming a species (None = off): the top species' score
+    # must beat the best species of every other genus by at least this much.
+    # Photos of species the gallery lacks tend to scatter their runners-up across
+    # genera, and a name given then is usually wrong.
+    other_genus_lead: float | None = None
 
 
 @dataclass(frozen=True)
@@ -43,6 +48,10 @@ class AbstainDecision:
     species: str | None  # the shown species when tier == "species", else None
     signal_value: float
     genus_rollup: list[tuple[str, float]]
+    # Measured lead over the best other-genus species (None when not supplied).
+    other_genus_lead: float | None = None
+    # Why the species was withheld: "" (named), "signal" or "other_genus_lead".
+    reason: str = ""
 
 
 def _signal_value(signal: str, scores_desc: list[float]) -> float:
@@ -55,8 +64,16 @@ def _signal_value(signal: str, scores_desc: list[float]) -> float:
     raise ValueError(f"unknown signal: {signal!r}")
 
 
-def decide(candidate_ids, scores, cfg: AbstainConfig) -> AbstainDecision:
-    """Apply the abstain threshold; return the tier + the always-computed rollup."""
+def decide(
+    candidate_ids, scores, cfg: AbstainConfig, other_genus_lead: float | None = None
+) -> AbstainDecision:
+    """Apply the abstain threshold; return the tier + the always-computed rollup.
+
+    ``other_genus_lead`` is the top species' score minus the best score of any
+    species in another genus, measured over the WHOLE gallery (the candidate list
+    here is only the top few, which may all share one genus). It is required when
+    ``cfg.other_genus_lead`` is set.
+    """
     if len(candidate_ids) != len(scores):
         raise ValueError(
             f"candidate_ids ({len(candidate_ids)}) and scores ({len(scores)}) "
@@ -79,10 +96,23 @@ def decide(candidate_ids, scores, cfg: AbstainConfig) -> AbstainDecision:
         # signal shape. signal_value is informational: report the top cosine.
         return AbstainDecision("species", ids_desc[0], scores_desc[0], rollup)
 
+    lead = None if other_genus_lead is None else float(other_genus_lead)
+    if lead is not None and math.isnan(lead):
+        raise ValueError("other_genus_lead is NaN")
+    if cfg.other_genus_lead is not None and lead is None:
+        raise ValueError(
+            "the abstain config sets other_genus_lead but the caller passed no "
+            "measured other_genus_lead"
+        )
+
     signal_value = _signal_value(cfg.signal, scores_desc)
-    if signal_value >= cfg.tau:
-        return AbstainDecision("species", ids_desc[0], signal_value, rollup)
-    return AbstainDecision("genus_only", None, signal_value, rollup)
+    if signal_value < cfg.tau:
+        return AbstainDecision("genus_only", None, signal_value, rollup, lead, "signal")
+    if cfg.other_genus_lead is not None and lead < cfg.other_genus_lead:
+        return AbstainDecision(
+            "genus_only", None, signal_value, rollup, lead, "other_genus_lead"
+        )
+    return AbstainDecision("species", ids_desc[0], signal_value, rollup, lead)
 
 
 def load_config(path: str | None = None) -> AbstainConfig:
@@ -105,6 +135,11 @@ def load_config(path: str | None = None) -> AbstainConfig:
             tau=float(blob["tau"]),
             target_precision=float(blob["target_precision"]),
             enabled=bool(blob.get("enabled", True)),
+            other_genus_lead=(
+                None
+                if blob.get("other_genus_lead") is None
+                else float(blob["other_genus_lead"])
+            ),
         )
     except json.JSONDecodeError as e:
         raise ValueError(f"genus_abstain.json at {resolved!r} is malformed: {e}") from e

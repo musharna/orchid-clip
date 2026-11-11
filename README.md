@@ -43,7 +43,7 @@ The Space embeds a photo with two models, orchid-clip-v8 and [orchid-clip-v9cw05
 - extra centroids: for 105 species with a known color form, one built from photos of that form, and for 2,731 species, one built from photos that show no flower (leaves, buds, seed pods). The closest of a species' centroids counts;
 - the species' closest single reference photo, out of 553,468 kept in compressed form (435,962 of flowers and 117,506 that show no flower).
 
-A species' score is the mean of its centroid score and its closest-photo score. If the top two species differ by at least a threshold τ, the Space shows the top species; otherwise it shows only the genus and lists the candidates.
+A species' score is the mean of its centroid score and its closest-photo score. The Space shows the top species only if it beats the runner-up by at least a threshold τ and beats the best species of every other genus by at least 0.0369; otherwise it shows only the genus and lists the candidates.
 
 `orchid_clip/references.py` holds this scoring and the loaders for the two extra files; `scripts/build_photo_rows.py` and `scripts/build_form_refs.py` build them, and `scripts/append_photo_rows.py` adds photos to an existing file without changing the rows already in it. Both files must be rebuilt whenever the centroids are. The loaders refuse a file built for another checkpoint or species list, so a stale file stops the demo at startup. (`app.py` and `infer.py` here are an earlier version that ranks against text embeddings of 18,858 species names.)
 
@@ -53,8 +53,10 @@ The deployed τ = 0.0118 was chosen with `risk_coverage_curve` and `select_tau` 
 | ------------------------------------------------- | -------------------- |
 | species top-1, no abstain (held-out, n = 5,050)   | 0.78                 |
 | genus top-1 (same set)                            | 0.93                 |
-| shown-species precision with abstain (in-sample)  | 0.90 at 73% coverage |
+| shown-species precision with abstain (in-sample)  | 0.94 at 67% coverage |
 | genus top-1 on species with no centroid (n = 243) | 0.65                 |
+
+The second condition, the lead over other genera, was added on 2026-11-10 to cut wrong names on species the demo has no entry for. When a photo is of such a species, the runners-up tend to come from several genera. The threshold was set on half of the species (split by a hash of the species name) and tested once on the other half. There, on 121 photos of species with no entry, the demo named a species, always wrongly, for 23 instead of 45. On 2,474 photos of species it does know, it kept 1,538 of 1,611 right names and dropped 85 of 184 wrong ones, so named species were right 94% of the time instead of 90%, and a species was named for 66% of photos instead of 73%. With τ alone, the figures on all 5,050 photos were 0.90 at 73% coverage.
 
 The non-flower references were added on 2026-11-10. On 3,633 held-out photos that show no flower, scored once after the method and τ were fixed, species top-1 went from 0.61 to 0.79 and genus top-1 from 0.82 to 0.96. Those photos come from the same collection as the references (photos of the same observation were kept apart), so the gain on entirely new photos is probably smaller.
 
@@ -97,7 +99,7 @@ The feature can be ranked against species text embeddings or image centroids, or
 
 | path                        | contents                                                                                                                                                               |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `orchid_clip/`              | inference package: embedder (`embedder.py`), margin-based species abstain (`abstain.py`), genus rollup (`genus.py`)                                                    |
+| `orchid_clip/`              | inference package: embedder (`embedder.py`), species abstain (`abstain.py`), genus rollup (`genus.py`)                                                                 |
 | `infer.py`, `app.py`        | scoring core and Gradio UI for the earlier text-embedding version of the demo                                                                                          |
 | `orchid_clip/references.py` | the live demo's extra references: color-form centroids and photo-level scoring (build, load, score)                                                                    |
 | `scripts/`                  | `build_photo_rows.py`, `append_photo_rows.py` and `build_form_refs.py` (build the two reference files), `smoke.py` (CI check, with a round trip of the reference code) |

@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from orchid_clip.abstain import AbstainConfig, decide, load_config
+from orchid_clip.references import genus_ids, other_genus_lead
 
 
 def load_assets(assets_dir: str | Path):
@@ -61,7 +62,10 @@ def score_and_format(
     cand_ids = [binomials[i] for i in top]
     cand_scores = [float(sims[i]) for i in top]
 
-    decision = decide(cand_ids, cand_scores, abstain)
+    lead = None
+    if abstain.enabled and abstain.other_genus_lead is not None:
+        lead = other_genus_lead(sims, genus_ids(binomials))
+    decision = decide(cand_ids, cand_scores, abstain, lead)
     # Genus readouts are concrete counts over the top-k candidates, NOT the
     # softmax-over-cosine "probabilities" (misleadingly flat at this cosine
     # scale). The abstain itself is margin-based and unaffected.
@@ -74,10 +78,20 @@ def score_and_format(
         # Abstaining from species -> headline the dominant genus (the rollup
         # top), not the unreliable top-1's genus.
         headline_genus = decision.genus_rollup[0][0]
+        if decision.reason == "other_genus_lead":
+            why = (
+                f"the top species leads the best match in another genus by only "
+                f"`{decision.other_genus_lead:.4f}` (needs "
+                f"`{abstain.other_genus_lead:.4f}`), "
+            )
+        else:
+            why = (
+                f"top species margin `{decision.signal_value:.4f}` < calibrated τ "
+                f"`{abstain.tau:.4f}`, "
+            )
         verdict = (
             f"### 🌿 Genus: {headline_genus}\n"
-            f"**Species uncertain** — top species margin "
-            f"`{decision.signal_value:.4f}` < calibrated τ `{abstain.tau:.4f}`, "
+            f"**Species uncertain** — {why}"
             f"so the model abstains from a species call. Candidate genera in the "
             f"top {len(cand_ids)}: {genera_str}. Read the species list below as "
             f"*“this genus, probably one of these.”*"
