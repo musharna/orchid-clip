@@ -284,6 +284,94 @@ def check_abstain() -> None:
     print("abstain     two conditions ok")
 
 
+def check_remote_assets() -> None:
+    """Large asset files named in model.json: pinned revision, sha256-checked."""
+    import hashlib
+    import tempfile
+
+    from orchid_clip import references as R
+
+    sha = lambda b: hashlib.sha256(b).hexdigest()
+    rev = "a" * 40
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        assets, hub = tmp / "assets", tmp / "hub"
+        assets.mkdir()
+        hub.mkdir()
+        (assets / "model.json").write_text("{}")
+        (assets / "small.json").write_text("small")
+        (hub / "big.npz").write_bytes(b"big file")
+        (hub / "other.npz").write_bytes(b"other file")
+        calls = []
+
+        def fake(repo_id, filename, repo_type, revision, subfolder):
+            calls.append((repo_id, filename, repo_type, revision, subfolder))
+            return str(hub / filename)
+
+        def meta(**over):
+            remote = {
+                "repo_id": "someone/refs",
+                "repo_type": "dataset",
+                "revision": rev,
+                "subfolder": "v1",
+                "files": {"big.npz": sha(b"big file"), "other.npz": sha(b"other file")},
+            }
+            remote.update(over)
+            return {"remote_assets": remote}
+
+        def refused(m, text, **kw):
+            try:
+                R.resolve_assets(assets, m, **kw)
+            except ValueError as e:
+                assert text in str(e), e
+            else:
+                raise AssertionError(f"resolve_assets accepted a config with: {text}")
+
+        # No remote_assets: the directory itself, and nothing is downloaded.
+        assert R.resolve_assets(assets, {}, download=fake) == assets and not calls
+
+        # Both files downloaded at the pinned revision; small files linked through.
+        out = R.resolve_assets(assets, meta(), download=fake)
+        assert out != assets
+        assert sorted(f.name for f in out.iterdir()) == [
+            "big.npz",
+            "model.json",
+            "other.npz",
+            "small.json",
+        ]
+        assert (out / "big.npz").read_bytes() == b"big file"
+        assert (out / "small.json").read_text() == "small"
+        assert calls == [
+            ("someone/refs", "big.npz", "dataset", rev, "v1"),
+            ("someone/refs", "other.npz", "dataset", rev, "v1"),
+        ], calls
+
+        # A downloaded file whose content is not the recorded one is refused.
+        bad = meta()
+        bad["remote_assets"]["files"]["other.npz"] = sha(b"something else")
+        refused(bad, "other.npz from someone/refs@aaaaaaaa has sha256", download=fake)
+        # So are a branch name, a short sha, a malformed hash and missing keys.
+        refused(meta(revision="main"), "full commit sha", download=fake)
+        refused(meta(revision="a" * 39), "full commit sha", download=fake)
+        refused(meta(files={"big.npz": "abc"}), "is not a sha256", download=fake)
+        refused(meta(files={}), "files is empty", download=fake)
+        no_rev = meta()
+        del no_rev["remote_assets"]["revision"]
+        refused(no_rev, "lacks ['revision']", download=fake)
+
+        # A local copy with the recorded hash is used and never downloaded ...
+        (assets / "big.npz").write_bytes(b"big file")
+        calls.clear()
+        out = R.resolve_assets(assets, meta(), download=fake)
+        assert [c[1] for c in calls] == ["other.npz"], calls
+        assert (out / "big.npz").resolve() == (assets / "big.npz").resolve()
+        # ... and a local copy with other content is refused, not replaced.
+        (assets / "big.npz").write_bytes(b"stale file")
+        refused(meta(), "(local copy) has sha256", download=fake)
+    print("assets      remote files ok")
+
+
 check_references()
 check_abstain()
+check_remote_assets()
 print("smoke OK")
