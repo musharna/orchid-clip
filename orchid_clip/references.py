@@ -22,6 +22,9 @@ Pure numpy, no torch.
 
 from __future__ import annotations
 
+import hashlib
+import re
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -186,6 +189,89 @@ def concat_form_refs(
             np.asarray(extra["n_rows_used"], np.int64),
         ],
     }
+
+
+def _sha256(path: str | Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 24), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def resolve_assets(assets_dir: str | Path, meta: dict, download=None) -> Path:
+    """Directory holding every asset file, fetching the large ones if needed.
+
+    The reference files are too large for the Space's own storage, so model.json
+    may name another Hub repo for them::
+
+        "remote_assets": {"repo_id": ..., "repo_type": "dataset",
+                          "revision": <full commit sha>, "subfolder": null,
+                          "files": {"photo_rows.npz": <sha256>, ...}}
+
+    Without that key this returns ``assets_dir``. With it, it returns a new
+    directory of links to the files in ``assets_dir`` plus each listed file. A
+    listed file already in ``assets_dir`` is used if its sha256 is the recorded
+    one; otherwise the file is downloaded at the pinned revision and checked.
+    A hash that differs, a revision that is not a full commit sha, or a failed
+    download raises: the app must not start on files it was not tested with.
+    ``download(repo_id, filename, repo_type, revision, subfolder) -> path``
+    defaults to ``huggingface_hub.hf_hub_download``.
+    """
+    assets = Path(assets_dir)
+    remote = meta.get("remote_assets")
+    if remote is None:
+        return assets
+    missing = {"repo_id", "repo_type", "revision", "files"} - set(remote)
+    if missing:
+        raise ValueError(f"remote_assets in model.json lacks {sorted(missing)}")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(remote["revision"])):
+        raise ValueError(
+            f"remote_assets.revision must be a full commit sha, got {remote['revision']!r}"
+        )
+    if not remote["files"]:
+        raise ValueError("remote_assets.files is empty")
+    if download is None:
+        from huggingface_hub import hf_hub_download
+
+        def download(repo_id, filename, repo_type, revision, subfolder):
+            return hf_hub_download(
+                repo_id,
+                filename,
+                repo_type=repo_type,
+                revision=revision,
+                subfolder=subfolder,
+            )
+
+    out = Path(tempfile.mkdtemp(prefix="orchid_assets_"))
+    for name, want in remote["files"].items():
+        if not re.fullmatch(r"[0-9a-f]{64}", str(want)):
+            raise ValueError(f"remote_assets.files[{name!r}] is not a sha256: {want!r}")
+        local = assets / name
+        if local.exists():
+            src, where = local, f"{local} (local copy)"
+        else:
+            src = Path(
+                download(
+                    remote["repo_id"],
+                    name,
+                    remote["repo_type"],
+                    remote["revision"],
+                    remote.get("subfolder"),
+                )
+            )
+            where = f"{remote['repo_id']}@{remote['revision'][:8]}"
+        got = _sha256(src)
+        if got != want:
+            raise ValueError(
+                f"{name} from {where} has sha256 {got}, but model.json records {want}"
+            )
+        (out / name).symlink_to(src.resolve())
+        print(f"[assets] {name} <- {where}")
+    for f in sorted(assets.iterdir()):
+        if f.name not in remote["files"]:
+            (out / f.name).symlink_to(f.resolve())
+    return out
 
 
 def load_form_refs(
