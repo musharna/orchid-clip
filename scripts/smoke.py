@@ -217,5 +217,73 @@ def check_references() -> None:
     print("references  round trip ok")
 
 
+def check_abstain() -> None:
+    """The abstain's two conditions: top1-top2 margin, and lead over other genera."""
+    import json
+    import math
+    import tempfile
+
+    import numpy as np
+
+    from infer import score_and_format
+    from orchid_clip import references as R
+    from orchid_clip.abstain import AbstainConfig, decide, load_config
+
+    ids, sc = ["Aa bb", "Aa cc", "Bb dd"], [0.80, 0.70, 0.60]
+    off = AbstainConfig("margin", 0.05, 0.9)
+    on = AbstainConfig("margin", 0.05, 0.9, True, 0.25)
+    d = decide(ids, sc, off)
+    assert (d.tier, d.species, d.reason) == ("species", "Aa bb", ""), d
+    d = decide(ids, sc, on, 0.30)
+    assert (d.species, d.other_genus_lead, d.reason) == ("Aa bb", 0.30, ""), d
+    d = decide(ids, sc, on, 0.25)  # the threshold itself passes
+    assert d.species == "Aa bb", d
+    d = decide(ids, sc, on, 0.20)
+    assert (d.tier, d.species, d.reason) == ("genus_only", None, "other_genus_lead"), d
+    d = decide(ids, [0.80, 0.78, 0.10], on, 0.70)  # margin fails first
+    assert (d.species, d.reason) == (None, "signal"), d
+    assert decide(ids, sc, on, math.inf).species == "Aa bb"
+    for bad, text in [(None, "passed no measured other_genus_lead"), (math.nan, "NaN")]:
+        try:
+            decide(ids, sc, on, bad)
+        except ValueError as e:
+            assert text in str(e), e
+        else:
+            raise AssertionError(f"decide accepted other_genus_lead={bad}")
+
+    g = R.genus_ids(["Aa bb", "Aa cc", "Bb dd", "Cc ee"])
+    assert g.tolist() == [0, 0, 1, 2], g
+    assert abs(R.other_genus_lead(np.array([0.8, 0.79, 0.6, 0.65]), g) - 0.15) < 1e-12
+    assert R.other_genus_lead(np.array([0.8, 0.7]), np.array([0, 0])) == math.inf
+    try:
+        R.other_genus_lead(np.array([0.8, 0.7]), g)
+    except ValueError as e:
+        assert "differ" in str(e), e
+    else:
+        raise AssertionError("other_genus_lead accepted mismatched shapes")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = f"{tmp}/genus_abstain.json"
+        blob = {"signal": "margin", "tau": 0.05, "target_precision": 0.9}
+        json.dump(blob, open(path, "w"))
+        assert load_config(path).other_genus_lead is None
+        json.dump(dict(blob, other_genus_lead=0.25), open(path, "w"))
+        assert load_config(path).other_genus_lead == 0.25
+
+    # End to end through the result card: same query, the second condition alone
+    # turns a named species into a genus-only answer and says why.
+    bank = np.array([[1.0, 0.0], [0.8, 0.6], [0.95, 0.3122499]], np.float32)
+    names = ["Aa bb", "Aa cc", "Bb dd"]
+    q = np.array(
+        [1.0, 0.0], np.float32
+    )  # scores 1.0, 0.8, 0.95: margin 0.05, lead 0.05
+    v_off, _, _ = score_and_format(q, 3, bank, names, off, {})
+    v_on, _, _ = score_and_format(q, 3, bank, names, on, {})
+    assert v_off.startswith("### ✅ Aa bb"), v_off
+    assert v_on.startswith("### 🌿 Genus") and "another genus" in v_on, v_on
+    print("abstain     two conditions ok")
+
+
 check_references()
+check_abstain()
 print("smoke OK")
