@@ -41,7 +41,7 @@ The Space embeds a photo with two models, orchid-clip-v8 and [orchid-clip-v9cw05
 
 - an image centroid, the average of up to 256 of the species' reference photos;
 - extra centroids: for 105 species with a known color form, one built from photos of that form, for 2,731 species, one built from photos that show no flower (leaves, buds, seed pods), and for 82 species otherwise known only from a herbarium sheet or drawing, one built from photos of the living plant. The closest of a species' centroids counts;
-- the species' closest single reference photo, out of 553,999 kept in compressed form (435,962 of flowers, 117,506 that show no flower, and 531 of living plants, added for 170 species that had only a herbarium sheet or drawing).
+- the species' closest single reference photo, out of 553,996 kept in compressed form (435,959 of flowers, 117,506 that show no flower, and 531 of living plants, added for 170 species that had only a herbarium sheet or drawing).
 
 A species' score is the mean of its centroid score and its closest-photo score. The Space shows the top species only if it beats the runner-up by at least a threshold τ and beats the best species of every other genus by at least 0.0369; otherwise it shows only the genus and lists the candidates.
 
