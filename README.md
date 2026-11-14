@@ -37,11 +37,11 @@ The gains are uneven. The largest are in genera with few holdout images (for exa
 
 ## How the demo decides
 
-The Space embeds a photo with two models, orchid-clip-v8 and [orchid-clip-v9cw05](https://huggingface.co/musharna/orchid-clip-v9cw05), and averages their scores. It scores each of 25,342 species against three kinds of reference:
+The Space embeds a photo with two models, orchid-clip-v8 and [orchid-clip-v9cw05](https://huggingface.co/musharna/orchid-clip-v9cw05), and averages their scores. It scores each of 25,325 species against three kinds of reference:
 
 - an image centroid, the average of up to 256 of the species' reference photos;
 - extra centroids: for 105 species with a known color form, one built from photos of that form, for 2,731 species, one built from photos that show no flower (leaves, buds, seed pods), and for 82 species otherwise known only from a herbarium sheet or drawing, one built from photos of the living plant. The closest of a species' centroids counts;
-- the species' closest single reference photo, out of 553,544 kept in compressed form (435,539 of flowers, 117,474 that show no flower, and 531 of living plants, added for 170 species that had only a herbarium sheet or drawing).
+- the species' closest single reference photo, out of 553,279 kept in compressed form (435,274 of flowers, 117,474 that show no flower, and 531 of living plants, added for 170 species that had only a herbarium sheet or drawing).
 
 A species' score is the mean of its centroid score and its closest-photo score. The Space shows the top species only if it beats the runner-up by at least a threshold τ and beats the best species of every other genus by at least 0.0369; otherwise it shows only the genus and lists the candidates.
 
@@ -49,7 +49,7 @@ A species' score is the mean of its centroid score and its closest-photo score. 
 
 The deployed τ = 0.0118 was chosen with `risk_coverage_curve` and `select_tau` in `eval/calibrate_genus_abstain.py`, on 5,050 photos of 2,494 species held out of training and of the references. Of the 8,837 held-out photos, 3,773 share an iNaturalist observation with a reference photo and were left out, because a near-copy among the references makes them score too high. Another 14 are of species the demo has no entry for. τ was tuned and scored on the same photos, so the precision and coverage figures are in-sample.
 
-| metric (25,342 candidate species)                 | value                |
+| metric (25,325 candidate species)                 | value                |
 | ------------------------------------------------- | -------------------- |
 | species top-1, no abstain (held-out, n = 5,050)   | 0.78                 |
 | genus top-1 (same set)                            | 0.93                 |
