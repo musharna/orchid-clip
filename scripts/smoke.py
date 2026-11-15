@@ -22,6 +22,7 @@ mods = [
     "orchid_clip.abstain",
     "orchid_clip.embedder",
     "orchid_clip.genus",
+    "orchid_clip.images",
     "orchid_clip.references",
 ]
 for m in mods:
@@ -371,7 +372,48 @@ def check_remote_assets() -> None:
     print("assets      remote files ok")
 
 
+def check_orientation() -> None:
+    """A file with a rotation tag opens turned upright; one without is unchanged.
+
+    The scene has a red top-left corner. For each tag the file stores the
+    scene the way a camera held that way would, and names the tag in EXIF.
+    """
+    import tempfile
+
+    import numpy as np
+    from PIL import Image
+
+    from orchid_clip.images import open_upright
+
+    scene = np.zeros((40, 60, 3), np.uint8)
+    scene[:20, :30] = (255, 0, 0)
+    # Stored pixels for each tag: the transform that exif_transpose undoes.
+    stored = {
+        1: scene,
+        3: np.rot90(scene, 2),
+        6: np.rot90(scene, 1),
+        8: np.rot90(scene, 3),
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        for tag, px in stored.items():
+            im = Image.fromarray(np.ascontiguousarray(px))
+            exif = Image.Exif()
+            exif[0x0112] = tag
+            path = pathlib.Path(tmp) / f"tag{tag}.png"
+            im.save(path, exif=exif)
+            plain = np.asarray(Image.open(path).convert("RGB"))
+            assert np.array_equal(plain, px), tag  # Image.open ignores the tag
+            got = np.asarray(open_upright(path))
+            assert got.shape == scene.shape, (tag, got.shape)
+            assert np.array_equal(got, scene), f"tag {tag} not turned upright"
+        bare = pathlib.Path(tmp) / "bare.png"
+        Image.fromarray(scene).save(bare)
+        assert np.array_equal(np.asarray(open_upright(bare)), scene)
+    print("images      rotation tags 1, 3, 6, 8 open upright")
+
+
 check_references()
 check_abstain()
 check_remote_assets()
+check_orientation()
 print("smoke OK")
