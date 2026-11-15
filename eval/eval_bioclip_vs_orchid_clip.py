@@ -43,6 +43,7 @@ from PIL import Image
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from orchid_clip.embedder import load_embedder
+from orchid_clip.images import open_upright
 
 ENSEMBLE_TEMPLATES = [
     "a photograph of {} orchid flower",
@@ -166,7 +167,7 @@ class OrchidCLIP:
             imgs = []
             for p in paths[i : i + batch]:
                 try:
-                    imgs.append(Image.open(p).convert("RGB"))
+                    imgs.append(open_upright(p))
                 except (OSError, ValueError):
                     imgs.append(Image.new("RGB", (224, 224)))
             pixels = torch.stack([self.emb.preprocess_image(im) for im in imgs], dim=0)
@@ -211,7 +212,7 @@ class BioCLIP2:
             imgs = []
             for p in paths[i : i + batch]:
                 try:
-                    imgs.append(self.preprocess(Image.open(p).convert("RGB")))
+                    imgs.append(self.preprocess(open_upright(p)))
                 except (OSError, ValueError):
                     imgs.append(self.preprocess(Image.new("RGB", (224, 224))))
             x = torch.stack(imgs, dim=0).to(self.device)

@@ -73,7 +73,7 @@ pip install open_clip_torch huggingface_hub torch pillow
 ```python
 import torch, open_clip
 from huggingface_hub import snapshot_download
-from PIL import Image
+from PIL import Image, ImageOps
 
 ckpt = snapshot_download(
     "musharna/orchid-clip-v8"
@@ -87,7 +87,9 @@ state = torch.load(
 model.load_state_dict(state["state_dict"])
 model.eval()  # weights live under state["state_dict"]
 
-img = preprocess(Image.open("orchid.jpg").convert("RGB")).unsqueeze(0)
+# exif_transpose turns the photo the way its rotation tag says, as the demo does
+img = ImageOps.exif_transpose(Image.open("orchid.jpg")).convert("RGB")
+img = preprocess(img).unsqueeze(0)
 with torch.no_grad():
     feat = model.encode_image(img)
 feat = feat / feat.norm(dim=-1, keepdim=True)  # 768-d, L2-normalized
@@ -101,6 +103,7 @@ The feature can be ranked against species text embeddings or image centroids, or
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `orchid_clip/`              | inference package: embedder (`embedder.py`), species abstain (`abstain.py`), genus rollup (`genus.py`)                                                                 |
 | `infer.py`, `app.py`        | scoring core and Gradio UI for the earlier text-embedding version of the demo                                                                                          |
+| `orchid_clip/images.py`     | `open_upright`: opens an image file with its rotation tag applied, as the demo does for uploads                                                                        |
 | `orchid_clip/references.py` | the live demo's extra references: color-form centroids and photo-level scoring (build, load, score)                                                                    |
 | `scripts/`                  | `build_photo_rows.py`, `append_photo_rows.py` and `build_form_refs.py` (build the two reference files), `smoke.py` (CI check, with a round trip of the reference code) |
 | `eval/`                     | `eval_bioclip_vs_orchid_clip.py` (closed-set and per-genus results), `audit_v7_confusions.py` (confusion pairs), `calibrate_genus_abstain.py` (τ)                      |
